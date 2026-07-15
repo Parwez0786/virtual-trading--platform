@@ -1,7 +1,7 @@
 const express = require("express");
 var db = require("../database/db");
 const jwt = require("jsonwebtoken");
-const middlewares = require("../utils/verifyUser.js");
+const middlewares = require("../middleware/verifyUser");
 const router = express.Router();
 const {
   ViewNames,

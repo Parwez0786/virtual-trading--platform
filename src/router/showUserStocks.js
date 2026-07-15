@@ -1,12 +1,11 @@
 const express = require("express");
 var con = require("../database/db");
 const router = express.Router();
-const middlewares = require("../utils/verifyUser.js");
+const middlewares = require("../middleware/verifyUser");
 const yahooFinance = require("yahoo-finance2").default;
-var flash = require("connect-flash");
 const fetch = require("node-fetch");
-
 const crypt = require("../utils/crypt");
+const { getRapidPrice } = require("../services/stockPriceService");
 const {
   ViewNames,
   FlashMessages,
@@ -18,35 +17,6 @@ const {
   rapidHeaders,
 } = require("../constants/enums");
 
-const getPrice = async (row) => {
-  return new Promise((resolve, reject) => {
-    yahooFinance
-      .quote(row)
-      .then((quote) => {
-
-        resolve(quote.regularMarketPrice);
-      })
-      .catch((err) => {
-        resolve(undefined);
-      });
-  });
-};
-
-const getPriceNew = async (row) => {
-  try {
-    row += StockIdentifiers.EQN_SUFFIX;
-    const response = await fetch(
-      rapidPriceUrl(StockIndexes.NIFTY_200, row), {
-        headers: rapidHeaders(false),
-      }
-    );
-
-    const data = await response.json();
-    return data[0].lastPrice;
-  } catch (err) {
-    return undefined;
-  }
-};
 router.get("/showUserStocks", async (req, res) => {
   try {
     const sql = `SELECT * FROM userStocks`;
@@ -69,7 +39,7 @@ router.get("/showUserStocks", async (req, res) => {
       const resultWithProfit = await Promise.all(
         result.map(async (row) => {
 
-          const price = await getPriceNew(row.id);
+          const price = await getRapidPrice(row.id);
           var currValue = parseFloat(price) * parseInt(row.units);
           currValue = currValue.toFixed(2);
           var profit = (currValue * 100) / row.amt_invested;
@@ -648,7 +618,7 @@ router.get("/wishlist", middlewares.verifyUser, async (req, res) => {
     const resultWithProfit = await Promise.all(
       result.map(async (row) => {
 
-        const price = await getPriceNew(row.id);
+        const price = await getRapidPrice(row.id);
 
         var currValue = parseFloat(price) * parseInt(row.units);
         currValue = currValue.toFixed(2);

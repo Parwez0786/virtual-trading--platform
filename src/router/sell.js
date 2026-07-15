@@ -1,22 +1,13 @@
 const express = require("express");
 var con = require("../database/db");
 const router = express.Router();
-const middlewares = require("../utils/verifyUser.js");
-const fetch = require("node-fetch");
-const {
-  use
-} = require("passport");
-
 const crypt = require("../utils/crypt");
+const { getRapidPrice } = require("../services/stockPriceService");
 const {
   Routes,
   ViewNames,
   TradeMessages,
   FlashMessages,
-  StockIndexes,
-  StockIdentifiers,
-  rapidPriceUrl,
-  rapidHeaders,
 } = require("../constants/enums");
 
 router.get("/sellStocks", async (req, res) => {
@@ -29,21 +20,6 @@ router.get("/sellStocks", async (req, res) => {
   });
 });
 
-const getPriceNew = async (row) => {
-  try {
-    row += StockIdentifiers.EQN_SUFFIX;
-    const response = await fetch(
-      rapidPriceUrl(StockIndexes.NIFTY_200, row), {
-        headers: rapidHeaders(),
-      }
-    );
-
-    const data = await response.json();
-    return data[0].lastPrice;
-  } catch (err) {
-    return undefined;
-  }
-};
 router.post("/sellStock", async (req, res) => {
   var unit = req.body.units;
   var stockId = req.body.stockid;
@@ -89,7 +65,7 @@ router.post("/sellStock", async (req, res) => {
                 original_amount_in_stockuser = result[0].amount;
 
                 if (units_in_database == unit) {
-                  var currentPrice = await getPriceNew(stockId);
+                  var currentPrice = await getRapidPrice(stockId);
                   var currentValue = unit * currentPrice;
 
                   if (currentValue >= total_amount_invested_in_that_stock) {
@@ -136,7 +112,7 @@ router.post("/sellStock", async (req, res) => {
                     }
                   });
                 } else {
-                  var currentPrice = await getPriceNew(stockId);
+                  var currentPrice = await getRapidPrice(stockId);
                   var currentValue = unit * currentPrice;
                   var new_units = units_in_database - unit;
                   var totalamount_investifor_entered_unit =
