@@ -16,7 +16,12 @@ const {
 } = require("../constants/enums");
 
 function renderLogin(req, res) {
-  res.render(ViewNames.LOGIN, { message: req.flash(FlashKeys.MESSAGE) });
+  const flash = req.flash(FlashKeys.MESSAGE);
+  const message = Array.isArray(flash) ? flash[0] : flash;
+  res.render(ViewNames.LOGIN, {
+    message: message || null,
+    type: message ? "warn" : null,
+  });
 }
 
 function userLand(req, res) {

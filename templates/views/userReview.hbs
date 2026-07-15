@@ -110,13 +110,10 @@
 
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <link href='https://unpkg.com/boxicons@2.0.7/css/boxicons.min.css' rel='stylesheet'>
+  {{> ui-assets}}
 </head>
 
 <body>
-
-
-  
-
  <nav id="navBar">
         <img id="navLogo" src="/images/logo2.png" alt="logo">
         <h2>Trade Vantage</h2>
@@ -127,8 +124,10 @@
             <a href="/api/profileauth/transactionHistory">Transaction History</a>
         </div>
     </nav>
+  {{> alert}}
   <h1>Share Your Experience</h1>
-  <form action="/api/showUserStocks/review?username={{username}}" method="post">
+  <p class="ui-muted" style="text-align:center;">Signed in as {{orDash username}}</p>
+  <form action="/api/showUserStocks/review" method="post">
 
 
     <label for="rating">Rating</label>

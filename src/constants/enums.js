@@ -161,6 +161,8 @@ const FlashMessages = Object.freeze({
   ACCOUNT_DELETE_FAILED: "Could not delete account. Please try again.",
   PROFILE_UPDATE_FAILED: "Could not update profile. Please try again.",
   STOCK_FETCH_FAILED: "Could not fetch stock prices. Please refresh.",
+  STOCK_DEMO_MODE:
+    "Live market APIs are unavailable — showing demo prices for virtual trading.",
   AUTO_ORDER_FAILED: "Could not place auto order. Please try again.",
 });
 
@@ -195,10 +197,7 @@ const StatusMessages = Object.freeze({
 
 const EmailTemplates = Object.freeze({
   CONFIRM_SUBJECT: "Confirm your Virtual Trading registration",
-  CONFIRM_BODY: (link) =>
-    `Click this link to complete registration:\n\n${link}\n\nThis link expires in 15 minutes.`,
-  FORGOT_SUBJECT: "forgot password",
-  FORGOT_BODY: (link) => `reset password link ===>${link}`,
+  FORGOT_SUBJECT: "Reset your Virtual Trading password",
 });
 
 const FormFields = Object.freeze({
@@ -263,12 +262,14 @@ function oauthCallbackUrl(path) {
 }
 
 function rapidPriceUrl(index, identifier) {
-  const base = `https://${RapidApiConfig.HOST}${RapidApiConfig.PRICE_PATH}?Indices=${encodeURIComponent(
-    index
-  )}`;
-  return identifier
-    ? `${base}&Identifier=${encodeURIComponent(identifier)}`
-    : base;
+  // RapidAPI accepts "+" for spaces but rejects "%20" ("API doesn't exists").
+  // node-fetch would encode a literal space as %20, so normalize to "+".
+  const indices = String(index).replace(/ /g, "+");
+  let url = `https://${RapidApiConfig.HOST}${RapidApiConfig.PRICE_PATH}?Indices=${indices}`;
+  if (identifier) {
+    url += `&Identifier=${encodeURIComponent(identifier)}`;
+  }
+  return url;
 }
 
 function rapidHeaders(useAltKey = false) {

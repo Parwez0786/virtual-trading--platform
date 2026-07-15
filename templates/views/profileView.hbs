@@ -1,212 +1,89 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your profile</title>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href="https://unpkg.com/boxicons@2.0.7/css/boxicons.min.css" rel="stylesheet">
+  {{> ui-assets}}
   <style>
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: Arial, sans-serif;
-  font-size: 16px;
-  line-height: 1.6;
-  background-color: #f7f7f7;
-}
-
-header {
-  background-color: #333;
-  color: #fff;
-  text-align: center;
-  padding: 20px;
-}
-
-nav {
-  background-color: #f1f1f1;
-  border-bottom: 1px solid #ccc;
-  padding: 10px;
-}
-
-nav ul {
-  list-style: none;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-nav ul li a {
-  color: #333;
-  text-decoration: none;
-  padding: 10px;
-  transition: all 0.3s ease;
-}
-
-nav ul li a:hover {
-  background-color: #333;
-  color: #fff;
-}
-
-main {
-  max-width: 800px;
-  margin: 20px auto;
-  padding: 20px;
-}
-
-section {
-  margin-bottom: 20px;
-}
-
-section h2 {
-  margin-bottom: 10px;
-  font-size: 24px;
-  color: #333;
-}
-
-section p {
-  margin-bottom: 10px;
-  line-height: 1.6;
-}
-
-table {
-  border-collapse: collapse;
-  width: 100%;
-  margin-bottom: 20px;
-}
-
-table th,
-table td {
-  border: 1px solid #ccc;
-  padding: 10px;
-  text-align: center;
-}
-
-table th {
-  background-color: #f1f1f1;
-  color: #333;
-}
-
-table td:first-child {
-  text-align: left;
-}
-
-table td:last-child {
-  font-weight: bold;
-}
-
-footer {
-  background-color: #333;
-  color: #fff;
-  text-align: center;
-  padding: 10px;
-  margin-top: 20px;
-}
-
-footer p {
-  font-size: 14px;
-  margin-bottom: 0;
-}
-
-@media (max-width: 768px) {
-  main {
-    padding: 10px;
-  }
-  
-  table {
-    font-size: 14px;
-  }
-  
-  nav ul {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  
-  nav ul li {
-    margin-bottom: 10px;
-  }
-  
-  nav ul li:last-child {
-    margin-bottom: 0;
-  }
-}
-
-
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: linear-gradient(165deg, #f0fdfa 0%, #f8fafc 40%, #e0f2fe 100%);
+      color: #0f172a;
+      min-height: 100vh;
+    }
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding: 14px 24px;
+      background: #0f766e;
+      color: #fff;
+    }
+    nav a { color: #fff; text-decoration: none; font-weight: 600; margin-right: 12px; }
+    nav h2 { margin: 0; font-size: 1.1rem; }
+    main {
+      max-width: 720px;
+      margin: 28px auto;
+      padding: 0 16px 40px;
+    }
+    .profile-panel {
+      background: #fff;
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
+    }
+    h1 { margin: 0 0 8px; font-size: 1.6rem; }
+    .lede { color: #64748b; margin: 0 0 22px; }
+    dl {
+      display: grid;
+      grid-template-columns: 160px 1fr;
+      gap: 10px 14px;
+      margin: 0;
+    }
+    dt { color: #64748b; font-weight: 600; }
+    dd { margin: 0; font-weight: 700; }
+    .actions { margin-top: 24px; display: flex; flex-wrap: wrap; gap: 10px; }
   </style>
-
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Stock Portfolio</title>
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <header>
-      <h1>Stock Portfolio</h1>
-      <div class="user-info">
-        <p>Name: John Doe</p>
-        <p>Username: johndoe123</p>
+</head>
+<body>
+  <nav>
+    <h2>Trade Vantage</h2>
+    <a href="/api/showUserStocks/stockHome">Home</a>
+    <a href="/api/showUserStocks/showUserStocks">My Stocks</a>
+    <a href="/api/profileauth/transactionHistory">History</a>
+  </nav>
+  <main>
+    {{> alert}}
+    {{#if user}}
+    <section class="profile-panel">
+      <h1>{{orDash user.name}}</h1>
+      <p class="lede">Account overview for virtual trading</p>
+      <dl>
+        <dt>Username</dt>
+        <dd>{{orDash user.username}}</dd>
+        <dt>Email</dt>
+        <dd>{{orDash user.email}}</dd>
+        <dt>Mobile</dt>
+        <dd>{{orDash user.mobNo}}</dd>
+        <dt>Balance</dt>
+        <dd>&#8377;{{money user.amount}}</dd>
+        <dt>Profit</dt>
+        <dd>&#8377;{{money user.profit}}</dd>
+        <dt>Loss</dt>
+        <dd>&#8377;{{money user.loss}}</dd>
+      </dl>
+      <div class="actions">
+        <a class="ui-btn" href="/api/registerauth/changeProfile">Edit profile</a>
+        <a class="ui-btn" href="/api/showUserStocks/stockSelect">Browse stocks</a>
       </div>
-    </header>
-
-    <nav>
-      <ul>
-        <li><a href="#">Home</a></li>
-        <li><a href="#">Portfolio</a></li>
-        <li><a href="#">Contact</a></li>
-      </ul>
-    </nav>
-
-    <main>
-      <section>
-        <h2>Portfolio Summary</h2>
-        <p>Invested Amount: $10,000</p>
-        <p>Current Value: $12,500</p>
-      </section>
-
-      <section>
-        <h2>Portfolio Holdings</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Symbol</th>
-              <th>Quantity</th>
-              <th>Price</th>
-              <th>Total Value</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>AAPL</td>
-              <td>100</td>
-              <td>$150.00</td>
-              <td>$15,000.00</td>
-            </tr>
-            <tr>
-              <td>GOOG</td>
-              <td>50</td>
-              <td>$1,200.00</td>
-              <td>$60,000.00</td>
-            </tr>
-            <tr>
-              <td>AMZN</td>
-              <td>25</td>
-              <td>$3,000.00</td>
-              <td>$75,000.00</td>
-            </tr>
-          </tbody>
-          <tfoot>
-            <tr>
-              <td colspan="3">Total Value</td>
-              <td><strong>$150,000.00</strong></td>
-            </tr>
-          </tfoot>
-        </table>
-      </section>
-    </main>
-
-    <footer>
-      <p>&copy; 2023 Stock Portfolio</p>
-    </footer>
-  </body>
+    </section>
+    {{else}}
+    {{> empty-state title="Profile unavailable" text="We could not load your account details." href="/api/loginauth/login" cta="Sign in"}}
+    {{/if}}
+  </main>
+</body>
 </html>

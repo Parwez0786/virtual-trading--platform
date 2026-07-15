@@ -59,19 +59,17 @@
       display: none;
     }
   </style>
+  {{> ui-assets}}
 </head>
 
 <body>
-  <h1>{{stockName}} Stock Transaction</h1>
-  {{#if errorMessage}}
-  <p id="message" style="color: orange; font-weight: 800; text-align:center;">{{errorMessage}}</p>
-  {{/if}}
-  {{#if message}}
-  <p id="message" style="color: rgb(38, 255, 0); font-weight: 800; text-align:center;">{{message}}</p>
-  {{/if}}
+{{> alert}}
+
+  <h1>{{orDash stockName}} Stock Transaction</h1>
+  {{#if (hasItems result)}}
   <form action="/api/showUserStocks/post" method="post">
     <label for="units">Units:</label>
-    <input type="number" id="units" name="units" required><br>
+    <input type="number" id="units" name="units" min="1" required><br>
 
     <label for="userId">userId:</label>
     <input type="text" id="userId" name="userId" required><br>
@@ -83,19 +81,12 @@
 
     <input type="hidden" id="name" name="name" value="{{result.[0].name}}">
     <input type="hidden" id="id" name="id" value="{{result.[0].Id}}">
-    <input type="number" id="price" name="price" value="{{result.[0].price}}">
-   
-   
+    <input type="number" id="price" name="price" value="{{result.[0].price}}" min="0" step="any">
   </form>
-  <script>
-   
-
-    var message = document.getElementById('message');
-    setTimeout(() => {
-      message.innerHTML = "";
-    }, 3000)
-
-  </script>
+  {{else}}
+  {{> empty-state title="Stock not found" text="This buy page has no stock data. Pick another symbol from the market." href="/api/showUserStocks/stockSelect" cta="Browse stocks"}}
+  {{/if}}
+  <script></script>
 </body>
 
 </html>

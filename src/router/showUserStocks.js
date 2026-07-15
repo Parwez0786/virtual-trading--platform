@@ -5,7 +5,10 @@ const middlewares = require("../middleware/verifyUser");
 const yahooFinance = require("yahoo-finance2").default;
 const fetch = require("node-fetch");
 const crypt = require("../utils/crypt");
-const { getRapidPrice } = require("../services/stockPriceService");
+const {
+  getRapidPrice,
+  fetchNiftyIndex,
+} = require("../services/stockPriceService");
 const {
   ViewNames,
   FlashMessages,
@@ -17,43 +20,44 @@ const {
   rapidHeaders,
 } = require("../constants/enums");
 
-router.get("/showUserStocks", async (req, res) => {
+router.get("/showUserStocks", middlewares.requireUser, async (req, res) => {
   try {
-    const sql = `SELECT * FROM userStocks`;
-    con.query(sql, async (error, result) => {
+    const username = req.user.username;
+    const sql = `SELECT * FROM userStocks WHERE username = ?`;
+    con.query(sql, [username], async (error, result) => {
       if (error) {
-        return res.redirect(
-          `/api/showUserStocks/showUserStocks?error=${encodeURIComponent(
-            FlashMessages.DB_ERROR
-          )}`
-        );
+        return res.render(ViewNames.SHOW_USER_STOCKS, {
+          resultWithProfit: [],
+          error: FlashMessages.DB_ERROR,
+        });
       }
 
-      if (result.length === 0) {
-        res.render(ViewNames.SHOW_USER_STOCKS, {
+      const rows = result || [];
+      if (rows.length === 0) {
+        return res.render(ViewNames.SHOW_USER_STOCKS, {
           resultWithProfit: [],
+          message: req.query.message,
+          error: req.query.error,
         });
-        return;
       }
 
       const resultWithProfit = await Promise.all(
-        result.map(async (row) => {
-
+        rows.map(async (row) => {
           const price = await getRapidPrice(row.id);
-          var currValue = parseFloat(price) * parseInt(row.units);
-          currValue = currValue.toFixed(2);
-          var profit = (currValue * 100) / row.amt_invested;
-          profit = (profit - 100).toFixed(2);
-
-          var flagProfit = false;
-          if (profit >= 0) {
-            flagProfit = true;
+          const unitCount = parseInt(row.units, 10) || 0;
+          const invested = parseFloat(row.amt_invested) || 0;
+          const currValueNum = (parseFloat(price) || 0) * unitCount;
+          const currValue = currValueNum.toFixed(2);
+          let profit = "0.00";
+          if (invested > 0) {
+            profit = (((currValueNum * 100) / invested) - 100).toFixed(2);
           }
+          const flagProfit = parseFloat(profit) >= 0;
 
           return {
             ...row,
-            currValue: currValue,
-            profit: profit,
+            currValue,
+            profit,
             flagProfit,
           };
         })
@@ -61,62 +65,58 @@ router.get("/showUserStocks", async (req, res) => {
 
       res.render(ViewNames.SHOW_USER_STOCKS, {
         resultWithProfit,
+        message: req.query.message,
+        error: req.query.error,
       });
     });
   } catch (error) {
-    res.redirect(
-      `/api/showUserStocks/showUserStocks?error=${encodeURIComponent(
-        FlashMessages.TRY_AGAIN
-      )}`
-    );
+    res.render(ViewNames.SHOW_USER_STOCKS, {
+      resultWithProfit: [],
+      error: FlashMessages.TRY_AGAIN,
+    });
   }
 });
 
 router.get("/stockSelect", async (req, res) => {
-  try {
-    const response = await fetch(
-      rapidPriceUrl(StockIndexes.NIFTY_200), {
-        headers: rapidHeaders(true),
-      }
-    );
+  const data = await fetchNiftyIndex(true);
+  const sortedData = [...data].sort((a, b) =>
+    a.identifier > b.identifier ? 1 : -1
+  );
+  const resultWithProfit = sortedData.map((row) => ({
+    ...row,
+    flagProfit: row.change >= 0,
+  }));
+  const usingDemo = data[0] && data[0]._source === "demo";
+  const error = req.query.error || null;
+  const message =
+    req.query.message ||
+    (usingDemo
+      ? FlashMessages.STOCK_DEMO_MODE
+      : resultWithProfit.length === 0
+        ? FlashMessages.STOCK_FETCH_FAILED
+        : null);
 
-    const data = await response.json();
-    const sortedData = data.sort((a, b) =>
-      a.identifier > b.identifier ? 1 : -1
-    );
-
-    const resultWithProfit = await Promise.all(
-      sortedData.map(async (row) => {
-        var flagProfit = false;
-        if (row.change >= 0) {
-          flagProfit = true;
-        }
-
-        return {
-          ...row,
-          flagProfit,
-        };
-      })
-    );
-
-
-    res.render(ViewNames.STOCK_SELECT, {
-      resultWithProfit,
-    });
-  } catch (err) {
-    res.redirect(
-      `/api/showUserStocks/stockSelect?error=${encodeURIComponent(
-        FlashMessages.STOCK_FETCH_FAILED
-      )}`
-    );
-  }
+  res.render(ViewNames.STOCK_SELECT, {
+    resultWithProfit,
+    error,
+    message,
+    type: usingDemo ? "warn" : error ? "error" : "info",
+  });
 });
 
-router.get("/buy", async (req, res) => {
+router.get("/buy", middlewares.requireUser, async (req, res) => {
   try {
     const id = req.query.id;
+    if (!id) {
+      return res.redirect(
+        `/api/showUserStocks/stockSelect?error=${encodeURIComponent(
+          FlashMessages.STOCK_FETCH_FAILED
+        )}`
+      );
+    }
 
     const message = req.query.message;
+    const errorMessage = req.query.error;
     var sql = `SELECT * FROM stocks WHERE id=?`;
     con.query(sql, [id], (error, result) => {
       if (error) {
@@ -126,15 +126,28 @@ router.get("/buy", async (req, res) => {
           )}`
         );
       }
+      if (!result || !result[0]) {
+        return res.redirect(
+          `/api/showUserStocks/stockSelect?error=${encodeURIComponent(
+            StatusMessages.STOCK_DATA_UNAVAILABLE
+          )}`
+        );
+      }
 
       res.render(ViewNames.BUY, {
         result,
+        stockName: result[0].name || result[0].Name || id,
         message,
+        errorMessage,
+        type: errorMessage ? "error" : message ? "success" : "info",
       });
     });
   } catch (error) {
-    if (error) {
-    }
+    res.redirect(
+      `/api/showUserStocks/stockSelect?error=${encodeURIComponent(
+        FlashMessages.TRY_AGAIN
+      )}`
+    );
   }
 });
 
@@ -270,9 +283,8 @@ router.post("/post", middlewares.verifyUser, async (req, res) => {
   }
 });
 
-router.get("/productDescription", async (req, res, next) => {
+router.get("/productDescription", middlewares.verifyUser, async (req, res) => {
   var message = req.query.error;
-
   const {
     id,
     identifier,
@@ -291,6 +303,14 @@ router.get("/productDescription", async (req, res, next) => {
     perChange365d,
     perChange30d,
   } = req.query;
+
+  if (!id || !identifier) {
+    return res.redirect(
+      `/api/showUserStocks/stockSelect?error=${encodeURIComponent(
+        StatusMessages.STOCK_DATA_UNAVAILABLE
+      )}`
+    );
+  }
 
   const quote = {
     id,
@@ -311,8 +331,12 @@ router.get("/productDescription", async (req, res, next) => {
     perChange30d,
   };
 
-  var autoBuyIdentfier = identifier.substring(1,identifier.length-1);
-  var symbol = quote.id + ".NS";
+  const cleaned =
+    typeof identifier === "string"
+      ? identifier.replace(/^["']|["']$/g, "")
+      : String(id);
+  var autoBuyIdentfier = cleaned;
+  var symbol = String(quote.id) + ".NS";
   const today = new Date();
   const end = today.toISOString().slice(0, 10);
   const start = new Date(
@@ -328,230 +352,150 @@ router.get("/productDescription", async (req, res, next) => {
     interval: "1d",
   };
 
-  var fun = async function (symbol, options) {
-    try {
-      var data = await yahooFinance.historical(symbol, options);
-      return data;
-    } catch (error) {
-      return undefined;
-    }
-  };
-
   async function getStockData() {
-    let stockData = await fun(symbol, options);
+    let stockData;
+    try {
+      stockData = await yahooFinance.historical(symbol, options);
+    } catch (error) {
+      stockData = undefined;
+    }
 
-    if (!stockData) {
-      res
-        .status(404)
-        .send(
-          `<h2 style="display:flex; justify-content:center; align-items:center;">${StatusMessages.STOCK_DATA_UNAVAILABLE}</h2>`
-        );
-    } else {
-      // now take two arrays , one for date and one for price of stock at that date
-      var dates = [];
-      var prices = [];
+    const dates = [];
+    const prices = [];
+    if (Array.isArray(stockData) && stockData.length > 0) {
       stockData.forEach((obj) => {
-        // extract the first 10 characters of the date string
         var date = obj.date.toISOString().slice(0, 10);
         const dateObj = new Date(date);
-        const options = {
+        const formattedDate = dateObj.toLocaleDateString("en-GB", {
           day: "2-digit",
           month: "short",
           year: "2-digit",
-        };
-        const formattedDate = dateObj.toLocaleDateString("en-GB", options);
-
-        var price = parseFloat(obj.close);
+        });
         dates.push(formattedDate);
-        prices.push(price);
-      });
-
-      res.render(ViewNames.PRODUCT_DESCRIPTION, {
-        quote,
-        message,
-        prices: JSON.stringify(prices),
-        dates: JSON.stringify(dates),
-        autoBuyIdentfier,
+        prices.push(parseFloat(obj.close));
       });
     }
+
+    res.render(ViewNames.PRODUCT_DESCRIPTION, {
+      quote,
+      message: message || (prices.length ? null : StatusMessages.STOCK_DATA_UNAVAILABLE),
+      type: message ? "error" : prices.length ? "info" : "warn",
+      prices: JSON.stringify(prices),
+      dates: JSON.stringify(dates),
+      autoBuyIdentfier,
+      hasChart: prices.length > 0,
+    });
   }
 
   getStockData();
-
 });
 
-router.get("/stockHome", middlewares.verifyUser, async (req, res) => {
-  try {
-    const response = await fetch(
-      rapidPriceUrl(StockIndexes.NIFTY_200), {
-        headers: rapidHeaders(true),
-      }
-    );
+router.get("/stockHome", middlewares.requireUser, async (req, res) => {
+  const data = await fetchNiftyIndex(true);
+  const trending = [...data]
+    .sort((a, b) => (a.totalTradedVolume <= b.totalTradedVolume ? 1 : -1))
+    .slice(0, 4);
+  const topGainersPreview = [...data]
+    .sort((a, b) => (a.pChange <= b.pChange ? 1 : -1))
+    .slice(0, 4);
+  const topLosersPreview = [...data]
+    .sort((a, b) => (a.pChange >= b.pChange ? 1 : -1))
+    .slice(0, 4);
+  // Back-compat for any leftover template refs
+  const sortedData = trending;
 
-    const data = await response.json();
-    const sortedData = data.sort((a, b) =>
-      a.totalTradedVolume <= b.totalTradedVolume ? 1 : -1
-    );
+  const name = req.user && (req.user.name || req.user.Name);
+  const email = req.user && req.user.email;
+  const usingDemo = data[0] && data[0]._source === "demo";
+  const marketError = usingDemo
+    ? FlashMessages.STOCK_DEMO_MODE
+    : data.length === 0
+      ? FlashMessages.STOCK_FETCH_FAILED
+      : null;
+  const alertType = usingDemo ? "warn" : marketError ? "error" : "info";
 
-    var name = req.user.Name;
-    var email = req.user.email;
-
-    sortedData.length = 4;
-    var sql = `select * from reviews`;
-    con.query(sql, (error, result) => {
-      if (error) {
-        return res.redirect(
-          `/api/showUserStocks/stockSelect?error=${encodeURIComponent(
-            FlashMessages.DB_ERROR
-          )}`
-        );
-      }
-      res.render(ViewNames.STOCK_HOME, {
-        result,
-        name,
-        email,
-        sortedData,
-      });
-    });
-  } catch (err) {
-    res.redirect(
-      `/api/showUserStocks/stockSelect?error=${encodeURIComponent(
-        FlashMessages.STOCK_FETCH_FAILED
-      )}`
-    );
-  }
-});
-
-
-router.get("/mostBought", async (req, res, next) => {
-  try {
-    const response = await fetch(
-      rapidPriceUrl(StockIndexes.NIFTY_200), {
-        headers: rapidHeaders(true),
-      }
-    );
-
-    const data = await response.json();
-    const sortedData = data.sort((a, b) =>
-      a.totalTradedVolume <= b.totalTradedVolume ? 1 : -1
-    );
-
-    const resultWithProfit = await Promise.all(
-      sortedData.map(async (row) => {
-        var flagProfit = false;
-        if (row.change >= 0) {
-          flagProfit = true;
-        }
-
-        return {
-          ...row,
-          flagProfit,
-        };
-      })
-    );
-
-    res.render(ViewNames.MOST_BOUGHT, {
-      resultWithProfit,
-    });
-  } catch (err) {
-    res.redirect(
-      `/api/showUserStocks/stockSelect?error=${encodeURIComponent(
-        FlashMessages.STOCK_FETCH_FAILED
-      )}`
-    );
-  }
-});
-
-
-router.get("/topGainers", async (req, res, next) => {
-  try {
-    const response = await fetch(
-      rapidPriceUrl(StockIndexes.NIFTY_200), {
-        headers: rapidHeaders(true),
-      }
-    );
-
-    const data = await response.json();
-    const sortedData = data.sort((a, b) => (a.pChange <= b.pChange ? 1 : -1));
-
-    const resultWithProfit = await Promise.all(
-      sortedData.map(async (row) => {
-        var flagProfit = false;
-        if (row.change >= 0) {
-          flagProfit = true;
-        }
-
-        return {
-          ...row,
-          flagProfit,
-        };
-      })
-    );
-
-    res.render(ViewNames.TOP_GAINERS, {
-      resultWithProfit,
-    });
-  } catch (err) {
-    res.redirect(
-      `/api/showUserStocks/stockSelect?error=${encodeURIComponent(
-        FlashMessages.STOCK_FETCH_FAILED
-      )}`
-    );
-  }
-});
-
-
-router.get("/topLosers", async (req, res, next) => {
-  try {
-    const response = await fetch(
-      rapidPriceUrl(StockIndexes.NIFTY_200), {
-        headers: rapidHeaders(true),
-      }
-    );
-
-    const data = await response.json();
-    const sortedData = data.sort((a, b) => (a.pChange >= b.pChange ? 1 : -1));
-
-    const resultWithProfit = await Promise.all(
-      sortedData.map(async (row) => {
-        var flagProfit = false;
-        if (row.change >= 0) {
-          flagProfit = true;
-        }
-
-        return {
-          ...row,
-          flagProfit,
-        };
-      })
-    );
-
-    res.render(ViewNames.TOP_LOSERS, {
-      resultWithProfit,
-    });
-  } catch (err) {
-    res.redirect(
-      `/api/showUserStocks/stockSelect?error=${encodeURIComponent(
-        FlashMessages.STOCK_FETCH_FAILED
-      )}`
-    );
-  }
-});
-
-
-router.get("/userReview", middlewares.verifyUser, async (req, res) => {
-  var username = req.user.username;
-
-  res.render(ViewNames.USER_REVIEW, {
-    username
+  con.query(`select * from reviews`, (error, result) => {
+    const payload = {
+      result: error ? [] : result || [],
+      name,
+      email,
+      sortedData,
+      trending,
+      topGainersPreview,
+      topLosersPreview,
+      message: error ? FlashMessages.DB_ERROR : marketError,
+      type: error ? "error" : alertType,
+      hasMarketData: data.length > 0,
+    };
+    res.render(ViewNames.STOCK_HOME, payload);
   });
 });
-router.post("/review", middlewares.verifyUser, async (req, res, next) => {
-  var username = req.query.username;
-  var rating = req.body.rating;
-  var comment = req.body.comment;
-  var sql = `insert into reviews (username, rating, comment) values ('${username}', ${rating}, '${comment}')`;
-  con.query(sql, (error, result) => {
+
+
+function marketListPayload(data, sorter) {
+  const resultWithProfit = [...data]
+    .sort(sorter)
+    .map((row) => ({ ...row, flagProfit: row.change >= 0 }));
+  const usingDemo = data[0] && data[0]._source === "demo";
+  return {
+    resultWithProfit,
+    message: usingDemo
+      ? FlashMessages.STOCK_DEMO_MODE
+      : resultWithProfit.length === 0
+        ? FlashMessages.STOCK_FETCH_FAILED
+        : null,
+    type: usingDemo ? "warn" : resultWithProfit.length ? "info" : "error",
+  };
+}
+
+router.get("/mostBought", async (req, res) => {
+  const data = await fetchNiftyIndex(true);
+  res.render(
+    ViewNames.MOST_BOUGHT,
+    marketListPayload(data, (a, b) =>
+      a.totalTradedVolume <= b.totalTradedVolume ? 1 : -1
+    )
+  );
+});
+
+router.get("/topGainers", async (req, res) => {
+  const data = await fetchNiftyIndex(true);
+  res.render(
+    ViewNames.TOP_GAINERS,
+    marketListPayload(data, (a, b) => (a.pChange <= b.pChange ? 1 : -1))
+  );
+});
+
+router.get("/topLosers", async (req, res) => {
+  const data = await fetchNiftyIndex(true);
+  res.render(
+    ViewNames.TOP_LOSERS,
+    marketListPayload(data, (a, b) => (a.pChange >= b.pChange ? 1 : -1))
+  );
+});
+
+
+router.get("/userReview", middlewares.requireUser, async (req, res) => {
+  res.render(ViewNames.USER_REVIEW, {
+    username: req.user.username,
+    error: req.query.error,
+    message: req.query.message,
+    type: req.query.error ? "error" : "success",
+  });
+});
+router.post("/review", middlewares.requireUser, async (req, res) => {
+  var username = req.user.username;
+  var rating = parseInt(req.body.rating, 10);
+  var comment = (req.body.comment || "").trim();
+  if (!rating || rating < 1 || rating > 5 || !comment) {
+    return res.redirect(
+      `/api/showUserStocks/userReview?error=${encodeURIComponent(
+        FlashMessages.TRY_AGAIN
+      )}`
+    );
+  }
+  var sql = `insert into reviews (username, rating, comment) values (?, ?, ?)`;
+  con.query(sql, [username, rating, comment], (error) => {
     if (error) {
       return res.redirect(
         `/api/showUserStocks/userReview?error=${encodeURIComponent(
@@ -560,27 +504,30 @@ router.post("/review", middlewares.verifyUser, async (req, res, next) => {
       );
     }
 
-    res.render(ViewNames.USER_REVIEW, {
-      username,
-    });
+    res.redirect(
+      `/api/showUserStocks/userReview?message=${encodeURIComponent(
+        "Thanks for sharing your review."
+      )}`
+    );
   });
 });
 
-router.get("/allUserReview", middlewares.verifyUser, async (req, res) => {
-  var name = req.user.Name;
+router.get("/allUserReview", middlewares.requireUser, async (req, res) => {
+  var name = req.user.name || req.user.Name;
   var email = req.user.email;
 
   var sql = `select * from reviews`;
   con.query(sql, (error, result) => {
     if (error) {
-      return res.redirect(
-        `/api/showUserStocks/stockHome?error=${encodeURIComponent(
-          FlashMessages.DB_ERROR
-        )}`
-      );
+      return res.render(ViewNames.ALL_USER_REVIEW, {
+        result: [],
+        name,
+        email,
+        error: FlashMessages.DB_ERROR,
+      });
     }
     res.render(ViewNames.ALL_USER_REVIEW, {
-      result,
+      result: result || [],
       name,
       email,
     });
@@ -603,44 +550,46 @@ const getPriceNew1 = async (row) => {
   }
 };
 
-router.get("/wishlist", middlewares.verifyUser, async (req, res) => {
-  var sql = `select * from wishlist `;
+router.get("/wishlist", middlewares.requireUser, async (req, res) => {
+  var sql = `select * from wishlist where username = ?`;
 
-  con.query(sql, async (error, result) => {
+  con.query(sql, [req.user.username], async (error, result) => {
     if (error) {
-      return res.redirect(
-        `/api/showUserStocks/wishlist?error=${encodeURIComponent(
-          FlashMessages.DB_ERROR
-        )}`
-      );
+      return res.render(ViewNames.WISHLIST, {
+        resultWithProfit: [],
+        error: FlashMessages.DB_ERROR,
+      });
     }
 
+    const rows = result || [];
     const resultWithProfit = await Promise.all(
-      result.map(async (row) => {
-
+      rows.map(async (row) => {
         const price = await getRapidPrice(row.id);
-
-        var currValue = parseFloat(price) * parseInt(row.units);
-        currValue = currValue.toFixed(2);
-        var profit = (currValue * 100) / row.amt_invested;
-        profit = (profit - 100).toFixed(2);
-
-        var flagProfit = false;
-        if (profit >= 0) {
-          flagProfit = true;
+        const unitCount = parseInt(row.units, 10) || 0;
+        const currValueNum = (parseFloat(price) || 0) * unitCount;
+        const currValue = currValueNum.toFixed(2);
+        const invested = parseFloat(row.amt_invested);
+        let profit = null;
+        let flagProfit = true;
+        if (invested > 0) {
+          profit = (((currValueNum * 100) / invested) - 100).toFixed(2);
+          flagProfit = parseFloat(profit) >= 0;
         }
 
         return {
           ...row,
-          currValue: currValue,
-          profit: profit,
+          currValue,
+          profit,
           flagProfit,
+          lastPrice: price,
         };
       })
     );
 
     res.render(ViewNames.WISHLIST, {
-      resultWithProfit
+      resultWithProfit,
+      error: req.query.error,
+      message: req.query.message,
     });
   });
 });

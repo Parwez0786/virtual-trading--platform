@@ -154,9 +154,12 @@
 
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <link href='https://unpkg.com/boxicons@2.0.7/css/boxicons.min.css' rel='stylesheet'>
+  {{> ui-assets}}
 </head>
 
 <body>
+    {{> alert}}
+
 
 
   
@@ -174,29 +177,23 @@
 
   <h1 id="hel">Wishlist</h1>
 
+  {{> alert}}
   <div class="containers">
-    {{#if resultWithProfit}}
+    {{#if resultWithProfit.length}}
     {{#each resultWithProfit}}
     <div class="stock-container" id="par">
-      <div class="stock-header">{{this.name}}</div>
-      <p>{{this.id}}</p>
-      <div class="stock-units">Units Holding: {{this.units}}</div>
-
-      <div class="stock-units">Current Value: <span style="color:purple;">&#8377;{{this.currValue}}</span></div>
-
+      <div class="stock-header">{{orDash this.name}}</div>
+      <p>{{orDash this.id}}</p>
+      <div class="stock-units">Units: {{orDash this.units}}</div>
+      <div class="stock-units">Current Value: <span style="color:#0f766e;">&#8377;{{money this.currValue}}</span></div>
       <br>
       <a class="insideBtn"
         href="/api/showUserStocks/buyWishlist?id={{this.id}}&name={{this.name}}&units={{this.units}}">Buy</a>
     </div>
     {{/each}}
     {{else}}
-    <div class="stock-container" id="par">
-      <h1 id="hr">Wishlist is empty</h1>
-
-    </div>
+    {{> empty-state title="Wishlist is empty" text="Save stocks from the market to review them later." href="/api/showUserStocks/stockSelect" cta="Browse stocks"}}
     {{/if}}
-
-
   </div>
 
   </div>

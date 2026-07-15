@@ -51,7 +51,11 @@ module.exports = function registerRoutes(app) {
     res.render(ViewNames.HOME2, { message: req.flash(FlashKeys.MESSAGE) });
   });
   app.get("/congrats_message", (req, res) => {
-    res.render(ViewNames.CONGRATS_MESSAGE, { genereted_account_no: undefined });
+    res.render(ViewNames.CONGRATS_MESSAGE, {
+      genereted_account_no: req.query.account || null,
+      message: req.query.message || req.flash(FlashKeys.MESSAGE),
+      type: "success",
+    });
   });
 
   app.use("/api/auth", require("../router/auth"));

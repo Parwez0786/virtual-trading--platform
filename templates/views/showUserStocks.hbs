@@ -139,6 +139,7 @@
             margin-left: 5%;
         }
     </style>
+  {{> ui-assets}}
 </head>
 
 <body>
@@ -163,8 +164,12 @@
 
     <h1 id="hel">Invested Stocks</h1>
 
+    {{> alert}}
+
+
     <div class="containers">
-        {{#each resultWithProfit}}
+        {{#if resultWithProfit.length}}
+{{#each resultWithProfit}}
         <div class="stock-container" id="par">
             <div class="stock-header">{{this.name}}</div>
             
@@ -182,6 +187,9 @@
             <a class="insideBtn" href="/api/sell/autoSell?id={{this.id}}EQN">Auto Sell</a>
         </div>
         {{/each}}
+{{else}}
+{{> empty-state title="No holdings yet" text="You have not invested in any stocks. Browse the market to get started." href="/api/showUserStocks/stockSelect" cta="Browse stocks"}}
+{{/if}}
 
     </div>
 

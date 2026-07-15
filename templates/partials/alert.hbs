@@ -1,0 +1,9 @@
+{{#if message}}
+<p class="ui-alert ui-alert--{{alertType type}}" role="status">{{message}}</p>
+{{/if}}
+{{#if error}}
+<p class="ui-alert ui-alert--error" role="alert">{{error}}</p>
+{{/if}}
+{{#if errorMessage}}
+<p class="ui-alert ui-alert--error" role="alert">{{errorMessage}}</p>
+{{/if}}

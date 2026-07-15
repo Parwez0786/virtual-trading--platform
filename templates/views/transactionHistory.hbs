@@ -79,6 +79,7 @@
             margin-left: 5%;
         }
     </style>
+  {{> ui-assets}}
 </head>
 
 <body>
@@ -94,6 +95,9 @@
         </div>
     </nav>
     <h1 class="heading">Transaction History</h1>
+
+    {{> alert}}
+
     <table>
         <thead>
             <tr>
@@ -106,7 +110,8 @@
             </tr>
         </thead>
         <tbody>
-            {{#each result}}
+            {{#if result.length}}
+{{#each result}}
             <tr>
                 <td>{{this.id}}</td>
                 <td>{{this.units}}</td>
@@ -116,6 +121,9 @@
 
             </tr>
             {{/each}}
+{{else}}
+{{> empty-state title="No transactions yet" text="Your buys and sells will show up here after you trade." href="/api/showUserStocks/stockHome" cta="Go to dashboard"}}
+{{/if}}
         </tbody>
     </table>
 </body>

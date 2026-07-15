@@ -14,9 +14,18 @@ router.get("/sellStocks", async (req, res) => {
   var id = req.query.id;
   var message = req.query.error;
 
+  if (!id) {
+    return res.redirect(
+      `/api/showUserStocks/showUserStocks?error=${encodeURIComponent(
+        FlashMessages.TRY_AGAIN
+      )}`
+    );
+  }
+
   res.render(ViewNames.SELL_STOCKS, {
     id,
-    message
+    message,
+    type: message ? "error" : "info",
   });
 });
 
@@ -202,9 +211,17 @@ router.post("/sellStock", async (req, res) => {
 router.get('/autoBuy', (req, res) => {
   var id = req.query.id;
   var error = req.query.error;
+  if (!id) {
+    return res.redirect(
+      `/api/showUserStocks/stockSelect?error=${encodeURIComponent(
+        FlashMessages.TRY_AGAIN
+      )}`
+    );
+  }
   res.render(ViewNames.AUTO_BUY, {
     id,
-    error
+    error,
+    type: error ? "error" : "info",
   });
 })
 
@@ -295,11 +312,18 @@ router.post('/autoBuyStock', (req, res) => {
 
 router.get('/autoSell', (req, res) => {
   var id = req.query.id;
-
   var error = req.query.error;
+  if (!id) {
+    return res.redirect(
+      `/api/showUserStocks/showUserStocks?error=${encodeURIComponent(
+        FlashMessages.TRY_AGAIN
+      )}`
+    );
+  }
   res.render(ViewNames.AUTO_SELL, {
     id,
-    error
+    error,
+    type: error ? "error" : "info",
   });
 })
 

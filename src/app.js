@@ -6,6 +6,7 @@ const session = require("express-session");
 const flash = require("connect-flash");
 const passport = require("passport");
 const { AuthSecrets, SessionConfig } = require("./constants/enums");
+const { registerHbsHelpers } = require("./utils/hbsHelpers");
 
 function createApp() {
   const app = express();
@@ -19,7 +20,9 @@ function createApp() {
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
   app.use(express.static(staticPath));
-  hbs.registerPartials(partialPath);
+  registerHbsHelpers(hbs);
+  // Keep filenames (e.g. ui-assets) so {{> ui-assets}} matches without underscore rewrite.
+  hbs.registerPartials(partialPath, { rename: (name) => name });
   app.use(session({
     secret: AuthSecrets.SESSION,
     cookie: { maxAge: SessionConfig.MAX_AGE_MS },

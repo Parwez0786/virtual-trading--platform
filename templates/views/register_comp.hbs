@@ -8,37 +8,35 @@
 
     <script>
         function validateForm() {
-            // Get form elements
-            const mobileNo = document.forms["complete_profile"]["mobileno"].value;
-            const dob = document.forms["complete_profile"]["dob"].value;
-            const address = document.forms["complete_profile"]["address"].value;
-            const program = document.forms["complete_profile"]["program"].value;
-            const dept = document.forms["complete_profile"]["dept"].value;
-            const year = document.forms["complete_profile"]["year"].value;
-            const semester = document.forms["complete_profile"]["Semester"].value;
-            const password = document.forms["complete_profile"]["pass"].value;
-            const confirmPassword = document.forms["complete_profile"]["conpass"].value;
+            const form = document.getElementById("complete_profile");
+            if (!form) return false;
+            const mobileNo = (form.mobileno.value || "").trim();
+            const dob = (form.dob.value || "").trim();
+            const amount = Number(form.amount.value);
+            const password = form.pass.value || "";
+            const confirmPassword = form.conpass.value || "";
 
-            // Validate mobile number
-            if (mobileNo.length !== 10) {
-                alert("Mobile number must be 10 digits long.");
+            if (!/^\d{10}$/.test(mobileNo)) {
+                alert("Enter a valid 10-digit mobile number.");
                 return false;
             }
-
-            // Validate required fields
-            if (!mobileNo || !dob || !address || !program || !dept || !year || !semester || !password || !confirmPassword) {
-                alert("All fields are required.");
+            if (!dob) {
+                alert("Please select your date of birth.");
                 return false;
             }
-
-            // Validate password and confirm password match
+            if (!Number.isFinite(amount) || amount <= 0) {
+                alert("Starting amount must be a number greater than 0.");
+                return false;
+            }
+            if (password.length < 6) {
+                alert("Password must be at least 6 characters.");
+                return false;
+            }
             if (password !== confirmPassword) {
                 alert("Password and confirm password must match.");
                 return false;
             }
-
-            // Form is valid
-            return true;
+            return confirm("Confirm registration?");
         }
 
     </script>
@@ -690,43 +688,32 @@ Generic layout (demo looks)
 
 
 <body>
-    <h3 id="flash"> {{message}}</h1>
+    {{> ui-assets}}
+    {{> alert}}
 
         <div class="container" id="container">
             <div class="form-container sign-in-container">
-                <form action="" method="post" id="complete_profile " onsubmit="return validateForm()">
+                <form method="post" id="complete_profile" onsubmit="return validateForm()">
                     <br>
                     <h2>Complete Profile</h2>
+                    <p style="color:#64748b;font-size:14px;">Finish setup for ID <strong>{{id}}</strong> ({{email}})</p>
                     <br>
-                    <input type="text" name="mobileno" placeholder="Mobile Number" />
-                    <input type="date" name="dob" placeholder="Date of Birth" />
-
-                    <input type="number" name="amount" placeholder="Amount" />
-                    <input type="password" name="pass" placeholder="Password" />
-
-                    <input type="password" name="conpass" placeholder="Confirm Password" />
-                    <button onclick="myFunction()" class="btn" type="submit" value="Register User">Submit</button>
+                    <input type="text" name="mobileno" placeholder="Mobile Number" inputmode="numeric" maxlength="10" required />
+                    <input type="date" name="dob" required />
+                    <input type="number" name="amount" placeholder="Starting amount (₹)" min="1" step="1" required />
+                    <input type="password" name="pass" placeholder="Password (min 6 chars)" minlength="6" required />
+                    <input type="password" name="conpass" placeholder="Confirm Password" minlength="6" required />
+                    <button class="btn" type="submit">Create account</button>
                 </form>
             </div>
         </div>
         <script>
-            let forms = document.getElementById('complete_profile');
-
-            function myFunction() {
-                let text;
-                if (confirm("Confirm Registration!") == true) {
-                    forms.action = `/api/registerauth/confirm_register/${id}/${email}/${token}`
-                } else {
-                    text = "You canceled!";
+            (function () {
+                var form = document.getElementById("complete_profile");
+                if (form) {
+                    form.action = "/api/registerauth/register_comp/{{id}}/{{email}}/{{token}}";
                 }
-                document.getElementById("demo").innerHTML = text;
-            }
-
-            setTimeout(function () {
-                // Find the alert element and hide it
-                var alertElement = document.getElementById("flash");
-                alertElement.style.display = "none";
-            }, 3000);
+            })();
         </script>
 </body>
 

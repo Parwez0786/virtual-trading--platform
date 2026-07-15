@@ -1,34 +1,38 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registration link verified</title>
+  {{> ui-assets}}
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: linear-gradient(160deg, #ecfeff 0%, #f8fafc 45%, #e0f2fe 100%);
+      color: #0f172a;
+    }
+    .panel {
+      width: min(440px, 92vw);
+      padding: 32px 28px;
+      border-radius: 16px;
+      background: #fff;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+      text-align: center;
+    }
+    h1 { margin: 0 0 10px; font-size: 1.5rem; }
+    p { margin: 0 0 22px; color: #64748b; line-height: 1.5; }
+  </style>
+</head>
 <body>
-
-  <form id="parwez" action="" method="post" name="login">
-     
-   
-
-      <input onclick="myFunction()" type="submit" value="Register">
-     
-      
-
-    
-
-      
-    </form>
-
-
-<script>
-    let forms=document.getElementById('parwez');
-
-function myFunction() {
-  let text;
-  if (confirm("Press a button!") == true) {
-      forms.action=`/api/registerauth/confirm_register/${id}/${token}`
-  } else {
-    text = "You canceled!";
-  }
-  document.getElementById("demo").innerHTML = text;
-}
-</script>
-
+  <div class="panel">
+    {{> alert}}
+    <h1>Link verified</h1>
+    <p>Your registration link for <strong>{{id}}</strong> is valid. Continue to complete your profile from the email invite, or sign in if you already finished.</p>
+    <a class="ui-btn" href="/api/loginauth/login">Go to login</a>
+  </div>
 </body>
 </html>

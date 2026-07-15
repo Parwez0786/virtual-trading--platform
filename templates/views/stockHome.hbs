@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="/css/home.css">
   <link rel="stylesheet" href="/css/search_box.css">
   <link rel="stylesheet" href="/css/navbar2.css">
+  {{> ui-assets}}
   <style>
     .bought {
       height: 350px;
@@ -332,95 +333,52 @@
   </div>
 
 
+  {{> alert}}
+
   <div class="bought">
     <div class="heading">
       <h1>Trending In Market</h1>
       <a class="bgm" href="/api/showUserStocks/mostBought">See all</a>
     </div>
+    {{#if trending.length}}
     <div class="mains">
-      <a href="/api/showUserStocks/productDescription?id={{sortedData.[0].symbol}}">
+      {{#each trending}}
+      <a class="ui-stock-card" href="/api/showUserStocks/productDescription?id={{this.symbol}}&identifier={{this.identifier}}&open={{this.open}}&dayHigh={{this.dayHigh}}&dayLow={{this.dayLow}}&lastPrice={{this.lastPrice}}&previousClose={{this.previousClose}}&change={{this.change}}&pChange={{this.pChange}}&totalTradedVolume={{this.totalTradedVolume}}&totalTradedValue={{this.totalTradedValue}}&lastUpdateTime={{this.lastUpdateTime}}&yearHigh={{this.yearHigh}}&yearLow={{this.yearLow}}&perChange365d={{this.perChange365d}}&perChange30d={{this.perChange30d}}">
         <div class="containers1">
-          <img class="imagestock" src="/images/in_stock.png" alt="logo">
-          <p>{{sortedData.[0].symbol}}</p>
-          <p>Price: ₹{{sortedData.[0].lastPrice}}</p>
-
-
-        </div>
-
-      </a>
-      <a href="/api/showUserStocks/productDescription?id={{sortedData.[0].symbol}}">
-        <div class="containers1">
-          <img class="imagestock" src="/images/in_stock.png" alt="logo">
-          <p>{{sortedData.[1].symbol}}</p>
-          <p>Price: ₹{{sortedData.[1].lastPrice}}</p>
-        </div>
-
-      </a>
-
-      <a href="/api/showUserStocks/productDescription?id={{sortedData.[0].symbol}}">
-
-        <div class="containers1">
-          <img class="imagestock" src="/images/in_stock.png" alt="logo">
-          <p>{{sortedData.[2].symbol}}</p>
-          <p>Price: ₹{{sortedData.[2].lastPrice}}</p>
+          <img class="imagestock" src="/images/in_stock.png" alt="">
+          <p>{{this.symbol}}</p>
+          <p>Price: ₹{{money this.lastPrice}}</p>
+          <p class="ui-muted">{{pct this.pChange}}</p>
         </div>
       </a>
-
-      <a href="/api/showUserStocks/productDescription?id={{sortedData.[0].symbol}}">
-
-        <div class="containers1">
-          <img class="imagestock" src="/images/in_stock.png" alt="logo">
-          <p>{{sortedData.[3].symbol}}</p>
-          <p>Price: ₹{{sortedData.[3].lastPrice}}</p>
-        </div>
-      </a>
+      {{/each}}
     </div>
+    {{else}}
+    {{> empty-state title="No market data" text="We could not load trending stocks right now." href="/api/showUserStocks/stockHome" cta="Refresh"}}
+    {{/if}}
   </div>
-
 
   <div class="bought">
     <div class="heading">
       <h1>Top Gainers</h1>
       <a class="bgm" href="/api/showUserStocks/topGainers">See all</a>
     </div>
+    {{#if topGainersPreview.length}}
     <div class="mains">
-      <a href="/api/showUserStocks/productDescription?id={{sortedData.[0].symbol}}">
+      {{#each topGainersPreview}}
+      <a class="ui-stock-card" href="/api/showUserStocks/productDescription?id={{this.symbol}}&identifier={{this.identifier}}&open={{this.open}}&dayHigh={{this.dayHigh}}&dayLow={{this.dayLow}}&lastPrice={{this.lastPrice}}&previousClose={{this.previousClose}}&change={{this.change}}&pChange={{this.pChange}}&totalTradedVolume={{this.totalTradedVolume}}&totalTradedValue={{this.totalTradedValue}}&lastUpdateTime={{this.lastUpdateTime}}&yearHigh={{this.yearHigh}}&yearLow={{this.yearLow}}&perChange365d={{this.perChange365d}}&perChange30d={{this.perChange30d}}">
         <div class="containers1">
           <img class="imagestock" src="/images/financial-profit.png" alt="">
-          <p>{{sortedData.[0].symbol}}</p>
-          <p>Price: ₹{{sortedData.[0].lastPrice}}</p>
-
-
-        </div>
-
-      </a>
-      <a href="/api/showUserStocks/productDescription?id={{sortedData.[0].symbol}}">
-        <div class="containers1">
-          <img class="imagestock" src="/images/financial-profit.png" alt="">
-          <p>{{sortedData.[1].symbol}}</p>
-          <p>Price: ₹{{sortedData.[1].lastPrice}}</p>
-        </div>
-
-      </a>
-
-      <a href="/api/showUserStocks/productDescription?id={{sortedData.[0].symbol}}">
-
-        <div class="containers1">
-          <img class="imagestock" src="/images/financial-profit.png" alt="">
-          <p>{{sortedData.[2].symbol}}</p>
-          <p>Price: ₹{{sortedData.[2].lastPrice}}</p>
+          <p>{{this.symbol}}</p>
+          <p>Price: ₹{{money this.lastPrice}}</p>
+          <p style="color:green;">{{pct this.pChange}}</p>
         </div>
       </a>
-
-      <a href="/api/showUserStocks/productDescription?id={{sortedData.[0].symbol}}">
-
-        <div class="containers1">
-          <img class="imagestock" src="/images/financial-profit.png" alt="">
-          <p>{{sortedData.[3].symbol}}</p>
-          <p>Price: ₹{{sortedData.[3].lastPrice}}</p>
-        </div>
-      </a>
+      {{/each}}
     </div>
+    {{else}}
+    {{> empty-state title="No gainers yet" text="Gainers will show up when market data is available." href="/api/showUserStocks/topGainers" cta="View all"}}
+    {{/if}}
   </div>
 
   <div class="bought">
@@ -428,44 +386,22 @@
       <h1>Top Losers</h1>
       <a class="bgm" href="/api/showUserStocks/topLosers">See all</a>
     </div>
+    {{#if topLosersPreview.length}}
     <div class="mains">
-      <a href="/api/showUserStocks/productDescription?id={{sortedData.[0].symbol}}">
+      {{#each topLosersPreview}}
+      <a class="ui-stock-card" href="/api/showUserStocks/productDescription?id={{this.symbol}}&identifier={{this.identifier}}&open={{this.open}}&dayHigh={{this.dayHigh}}&dayLow={{this.dayLow}}&lastPrice={{this.lastPrice}}&previousClose={{this.previousClose}}&change={{this.change}}&pChange={{this.pChange}}&totalTradedVolume={{this.totalTradedVolume}}&totalTradedValue={{this.totalTradedValue}}&lastUpdateTime={{this.lastUpdateTime}}&yearHigh={{this.yearHigh}}&yearLow={{this.yearLow}}&perChange365d={{this.perChange365d}}&perChange30d={{this.perChange30d}}">
         <div class="containers1">
           <img class="imagestock" src="/images/financial-profit.png" alt="">
-          <p>{{sortedData.[0].symbol}}</p>
-          <p>₹ {{sortedData.[0].lastPrice}}</p>
-
-
-        </div>
-
-      </a>
-      <a href="/api/showUserStocks/productDescription?id={{sortedData.[0].symbol}}">
-        <div class="containers1">
-          <img class="imagestock" src="/images/financial-profit.png" alt="">
-          <p>{{sortedData.[1].symbol}}</p>
-          <p>Price: ₹{{sortedData.[1].lastPrice}}</p>
-        </div>
-
-      </a>
-
-      <a href="/api/showUserStocks/productDescription?id={{sortedData.[0].symbol}}">
-
-        <div class="containers1">
-          <img class="imagestock" src="/images/financial-profit.png" alt="">
-          <p>{{sortedData.[2].symbol}}</p>
-          <p>Price: ₹{{sortedData.[2].lastPrice}}</p>
+          <p>{{this.symbol}}</p>
+          <p>Price: ₹{{money this.lastPrice}}</p>
+          <p style="color:red;">{{pct this.pChange}}</p>
         </div>
       </a>
-
-      <a href="/api/showUserStocks/productDescription?id={{sortedData.[0].symbol}}">
-
-        <div class="containers1">
-          <img class="imagestock" src="/images/financial-profit.png" alt="">
-          <p>{{sortedData.[3].symbol}}</p>
-          <p>Price: ₹{{sortedData.[3].lastPrice}}</p>
-        </div>
-      </a>
+      {{/each}}
     </div>
+    {{else}}
+    {{> empty-state title="No losers yet" text="Losers will show up when market data is available." href="/api/showUserStocks/topLosers" cta="View all"}}
+    {{/if}}
   </div>
 
 

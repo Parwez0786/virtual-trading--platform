@@ -15,6 +15,7 @@
 
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <link href='https://unpkg.com/boxicons@2.0.7/css/boxicons.min.css' rel='stylesheet'>
+  {{> ui-assets}}
 </head>
 <style>
   .container {
@@ -86,6 +87,9 @@
 
 
   <div class="container">
+
+    {{> alert}}
+
     <ul class="responsive-table">
       <li class="table-header">
         <div class="col col-2">Company Name</div>
@@ -95,23 +99,27 @@
         <div class="col col-5">52W Low</div>
       </li>
       
-      {{#each resultWithProfit}}
+      {{#if resultWithProfit.length}}
+{{#each resultWithProfit}}
       <a
         href="/api/showUserStocks/productDescription?id={{this.symbol}}&identifier='{{this.identifier}}'&open={{this.open}}&dayHigh={{this.dayHigh}}&dayLow={{this.dayLow}}&lastPrice={{this.lastPrice}}&previousClose={{this.previousClose}}&change={{this.change}}&pChange={{this.pChange}}&totalTradedVolume={{this.totalTradedVolume}}&totalTradedValue={{this.totalTradedValue}}&lastUpdateTime={{this.lastUpdateTime}}&yearHigh={{this.yearHigh}}&yearLow={{this.yearLow}}&perChange365d={{this.perChange365d}}&perChange30d={{this.perChange30d}}">
         <li class="table-row">
           <div class="col col-2" data-label="Customer Name" style="color:#342110">{{this.symbol}} </div>
-          <div class="col col-2" data-label="Amount" style="color:#342110"> ₹{{this.lastPrice}}</div>
+          <div class="col col-2" data-label="Amount" style="color:#342110"> ₹{{money this.lastPrice}}</div>
           {{#if flagProfit}}
           <div class="col col-3" data-label="Amount" style="color:Green;">{{this.change}}<br>({{this.pChange}}%)</div>
           {{else}}
           <div class="col col-3" data-label="Amount" style="color:red;">{{this.change}}<br>({{this.pChange}}%)</div>
           {{/if}}
 
-          <div class="col col-4" data-label="Payment Status" style="color:#342110">₹{{this.yearHigh}}</div>
-          <div class="col col-5" data-label="Payment Status" style="color:#342110">₹{{this.yearLow}}</div>
+          <div class="col col-4" data-label="Payment Status" style="color:#342110">₹{{money this.yearHigh}}</div>
+          <div class="col col-5" data-label="Payment Status" style="color:#342110">₹{{money this.yearLow}}</div>
         </li>
       </a>
       {{/each}}
+{{else}}
+{{> empty-state title="No trending stocks" text="We could not load most-bought stocks." href="/api/showUserStocks/stockHome" cta="Back to home"}}
+{{/if}}
     </ul>
   </div>
 

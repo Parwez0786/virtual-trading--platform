@@ -85,9 +85,12 @@
             margin-left: 5%;
         }
     </style>
+  {{> ui-assets}}
 </head>
 
 <body>
+    {{> alert}}
+
     <nav id="navBar">
         <img id="navLogo" src="/images/logo2.png" alt="logo">
         <h2>Trade Vantage</h2>
@@ -109,7 +112,8 @@
             </tr>
         </thead>
         <tbody>
-            {{#each result}}
+            {{#if result.length}}
+{{#each result}}
             <tr>
                 <td>{{this.id}}</td>
                 <td>{{this.units}}</td>
@@ -120,6 +124,9 @@
                 </td>
             </tr>
             {{/each}}
+{{else}}
+{{> empty-state title="No auto-sell orders" text="Create an auto-sell order from your holdings when you want exit targets." href="/api/showUserStocks/showUserStocks" cta="My stocks"}}
+{{/if}}
         </tbody>
     </table>
 </body>

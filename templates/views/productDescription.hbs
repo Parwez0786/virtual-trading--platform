@@ -223,9 +223,12 @@
            background-color: #2f947a;
         }
     </style>
+  {{> ui-assets}}
 </head>
 
 <body>
+{{> alert}}
+
 
     <nav id="navBar">
         <img id="navLogo" src="/images/logo2.png" alt="logo">
@@ -239,16 +242,18 @@
     </nav>
 
 
-    <h3 id="flash"> {{message}}</h1>
-
         <div id="dropDown" class="noDropDownDisplay"></div>
-        <h2 style="text-align: center; color:#00d09c">{{autoBuyIdentfier}}</h2>
+        <h2 style="text-align: center; color:#00d09c">{{orDash autoBuyIdentfier}}</h2>
 
 
         <div id="container">
 
             <div id="chart-container">
+                {{#if hasChart}}
                 <canvas id="chart"></canvas>
+                {{else}}
+                <p class="ui-muted" style="padding:24px;text-align:center;">Historical chart unavailable. You can still place a virtual trade with the quote below.</p>
+                {{/if}}
             </div>
 
             <div id="rightContainer">
@@ -429,75 +434,58 @@
             }
 
         </script>
+        {{#if hasChart}}
         <script>
-
-            let flg = 1;
-            if (flg) {
-                let id = document.getElementById('flash');
-                setTimeout(function () {
-                    // Find the alert element and hide it
-                    var alertElement = document.getElementById("flash");
-                    alertElement.style.display = "none";
-                    flg = 0;
-                }, 3000);
-            }
-            ////
-            ///////graph dat js
-
-
-            var ctx = document.getElementById('chart').getContext('2d');
-            var mychart = new Chart(ctx, {
+            var chartEl = document.getElementById('chart');
+            if (chartEl) {
+            var ctx = chartEl.getContext('2d');
+            new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: {{{ dates }}},
-            datasets: [{
-                label: 'Price in ₹',
-                data: {{ prices }},
-                borderWidth: 1,
-                borderColor: '#00d09c',
-                backgroundColor: 'rgb(0,208,156,0.2)',
-                pointBackgroundColor: '#00d09c',
-                pointBorderColor: '#fff',
-                pointHoverBackgroundColor: '#fff',
-                pointHoverBorderColor: '#00d09c',
-                fill: true
-                }]
-            },
-            options: {
-                responsive: true,
+                    datasets: [{
+                        label: 'Price in ₹',
+                        data: {{ prices }},
+                        borderWidth: 1,
+                        borderColor: '#00d09c',
+                        backgroundColor: 'rgb(0,208,156,0.2)',
+                        pointBackgroundColor: '#00d09c',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: '#00d09c',
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
                     scales: {
-                    xAxes: [{
-                        ticks: {
-                            autoSkip: false,
-                            maxRotation: 90,
-                            minRotation: 90
-                        }
-                    }],
-                        yAxes: [{
+                        xAxes: [{
                             ticks: {
-                                beginAtZero: true
+                                autoSkip: false,
+                                maxRotation: 90,
+                                minRotation: 90
                             }
+                        }],
+                        yAxes: [{
+                            ticks: { beginAtZero: true }
                         }]
-                },
-                legend: {
-                    display: true,
+                    },
+                    legend: {
+                        display: true,
                         position: 'top',
-                            labels: {
-                        fontColor: '#333',
-                            fontSize: 14
-                    }
-                },
-                title: {
-                    display: true,
+                        labels: { fontColor: '#333', fontSize: 14 }
+                    },
+                    title: {
+                        display: true,
                         text: 'Stock Price Chart',
-                            fontColor: '#333',
-                                fontSize: 18
+                        fontColor: '#333',
+                        fontSize: 18
+                    }
                 }
+            });
             }
-        });
-
-            ////
         </script>
+        {{/if}}
         <script src="/scripts/search_box.js"></script>
         <script src="/scripts/changeNavbar.js"></script>
         <script type="module">

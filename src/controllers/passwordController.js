@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const db = require("../services/db");
 const { sendMail } = require("../services/mailService");
+const { passwordResetEmail } = require("../mailer/emailTemplates");
 const crypt = require("../utils/crypt");
 const {
   AuthSecrets,
@@ -9,7 +10,6 @@ const {
   ViewNames,
   FlashKeys,
   FlashMessages,
-  EmailTemplates,
   FormFields,
   appBaseUrl,
 } = require("../constants/enums");
@@ -42,11 +42,16 @@ async function postForgetPassword(req, res) {
       { expiresIn: TokenConfig.EXPIRES_IN }
     );
     const link = `${appBaseUrl()}${Routes.RESET_PASSWORD}/${user.username}/${token}`;
+    const mail = passwordResetEmail({
+      link,
+      username: user.username,
+    });
     await sendMail({
       from: process.env.MAIL_FROM || process.env.SMTP_USER || process.env.EMAIL_USER,
       to: email,
-      subject: EmailTemplates.FORGOT_SUBJECT,
-      text: EmailTemplates.FORGOT_BODY(link),
+      subject: mail.subject,
+      text: mail.text,
+      html: mail.html,
     });
     req.flash(FlashKeys.MESSAGE, FlashMessages.AUTH_MAIL_SENT);
     res.redirect(Routes.FORGET_PASSWORD);

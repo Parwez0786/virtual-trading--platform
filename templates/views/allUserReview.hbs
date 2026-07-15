@@ -125,9 +125,12 @@
 
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <link href='https://unpkg.com/boxicons@2.0.7/css/boxicons.min.css' rel='stylesheet'>
+  {{> ui-assets}}
 </head>
 
 <body>
+{{> alert}}
+
 
 
   
@@ -153,25 +156,25 @@
       <!-- -- card -- -->
 
       <div id="card-div"
-        style="display:flex; align-items:center; justify-content: space-between; margin-top: 40px; width:100%">
-        {{#if result}}
+        style="display:flex; align-items:center; justify-content: space-between; margin-top: 40px; width:100%; flex-wrap: wrap; gap: 16px;">
+        {{#if (hasItems result)}}
         {{#each result}}
 
-        <a href="#">
+        <a href="#" class="ui-stock-card">
           <div class="card">
 
             <div class="profile-img display-flx">
 
               <div><img class="UserImg"
                   src="https://assets-netstorage.groww.in/web-assets/billion_groww_desktop/prod/build/client/images/ankitImg.863e0afa.png"
-                  width="56" height="56" alt="Ankit" /></div>
+                  width="56" height="56" alt="Reviewer" /></div>
 
               <div></div>
             </div>
 
-            <div class="say">{{this.comment}}</div>
-            <div class="name">{{this.username}}</div>
-            <div class="company">Product Specialist, Google</div>
+            <div class="say">{{orDash this.comment}}</div>
+            <div class="name">{{orDash this.username}}</div>
+            <div class="company">{{#if this.rating}}{{this.rating}} / 5{{else}}Trader review{{/if}}</div>
 
           </div>
         </a>
@@ -179,10 +182,7 @@
         {{/each}}
 
         {{else}}
-        <div class="stock-container" id="par">
-          <h1 id="hr">No Reviews available</h1>
-
-        </div>
+        {{> empty-state title="No reviews yet" text="Be the first to share your trading experience." href="/api/showUserStocks/userReview" cta="Write a review"}}
         {{/if}}
       </div>
 
