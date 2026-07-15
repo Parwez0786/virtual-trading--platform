@@ -204,19 +204,14 @@
   <!-- ----------- navbar (Start) ----------- -->
 
 
-
   <div class="sidebar">
     <div class="logo-details">
-      {{!-- <i class='bx bxl-c-plus-plus icon'></i> --}}
+      
       <div class="logo_name">Dashboard</div>
       <i class='bx bx-menu' id="btn"></i>
     </div>
     <ul class="nav-list">
-      {{!-- <li>
-        <i class='bx bx-search'></i>
-        <input type="text" placeholder="Search...">
-        <span class="tooltip">Search</span>
-      </li> --}}
+      
       <li>
         <a href="/api/showUserStocks/stockHome">
           <i class='bx bx-grid-alt'></i>
@@ -231,13 +226,7 @@
         </a>
         <span class="tooltip">Auto Buy</span>
       </li>
-      {{!-- <li>
-        <a href="#">
-          <i class='bx bx-chat'></i>
-          <span class="links_name">Messages</span>
-        </a>
-        <span class="tooltip">Messages</span>
-      </li> --}}
+      
       <li>
         <a href="/api/profileauth/transactionHistory">
           <i class='bx bx-pie-chart-alt-2'></i>
@@ -252,13 +241,7 @@
         </a>
         <span class="tooltip">Auto Sell</span>
       </li>
-      {{!-- <li>
-        <a href="#">
-          <i class='bx bx-cart-alt'></i>
-          <span class="links_name">Order</span>
-        </a>
-        <span class="tooltip">Order</span>
-      </li> --}}
+      
       <li>
         <a href="/api/showUserStocks/wishlist">
           <i class='bx bx-heart'></i>
@@ -266,13 +249,7 @@
         </a>
         <span class="tooltip">Wishlist</span>
       </li>
-      {{!-- <li>
-        <a href="#">
-          <i class='bx bx-cog'></i>
-          <span class="links_name">Setting</span>
-        </a>
-        <span class="tooltip">Setting</span>
-      </li> --}}
+      
       <li class="profile">
         <a href="#">
           <i class='bx bx-log-out' id="log_out"></i>
@@ -284,16 +261,13 @@
   </div>
 
 
-
   <nav id="navBar">
     <img id="navLogo" src="/images/logo2.png" alt="logo">
     <h2>Trade Vantage</h2>
 
   </nav>
 
-  {{!-- <section class="home-section">
-    <div class="text">Dashboard</div>
-  </section> --}}
+  
 
   <!-- ----------- navbar (End) ----------- -->
   <div id="logOutDropDown" class="noDropDownDisplay">
@@ -320,9 +294,7 @@
         <div id="mid-text">
           <p>Trusted by <strong>Millions</strong> of Indians. Start investing </br> today. </p>
         </div>
-        {{!-- <div id="get-btn">
-          <button>Get Started</button>
-        </div> --}}
+        
       </div>
 
 
@@ -358,9 +330,6 @@
     </div>
 
   </div>
-
-
-
 
 
   <div class="bought">
@@ -500,8 +469,6 @@
   </div>
 
 
-
-
   <div id="section-three" class="max-w">
     <div id="section-three-heading" class="max-w">
       Keep learning. Keep growing.
@@ -539,94 +506,11 @@
 
   </div>
 
-  {{!-- <div style="margin-top: 60px;" class="view-more">
-    <a href="#"> <span> View all articles </span> <span> &#8594; </span> </a>
-  </div> --}}
+  
 
-  {{!-- <section id="press-section" class="max-w">
-    <div style="display:flex; align-items: center; width:100%">
-      <div class="border-line right"></div>
-      <span id="heading">
-        In The Press
-      </span>
-      <div class="border-line left"></div>
-    </div>
+  
 
-    <!-- -------- -->
-
-    <div class="press-name" style="display:flex; align-items:center; justify-content: space-between; margin-top: 30px;">
-      <a href="https://groww.in/p/press/" target="_blank">
-        <div><img
-            src="https://assets-netstorage.groww.in/web-assets/billion_groww_desktop/prod/build/client/images/ys.9166bd37.svg"
-            width="166" height="88" alt="ys"></div>
-      </a><a href="https://groww.in/p/press/" target="_blank">
-        <div><img
-            src="https://assets-netstorage.groww.in/web-assets/billion_groww_desktop/prod/build/client/images/live.7edf8d7a.svg"
-            width="166" height="88" alt="live"></div>
-      </a><a href="https://groww.in/p/press/" target="_blank">
-        <div><img
-            src="https://assets-netstorage.groww.in/web-assets/billion_groww_desktop/prod/build/client/images/business.dc402a84.svg"
-            width="166" height="88" alt="business"></div>
-      </a><a href="https://groww.in/p/press/" target="_blank">
-        <div><img
-            src="https://assets-netstorage.groww.in/web-assets/billion_groww_desktop/prod/build/client/images/enter.09e9d78c.svg"
-            width="166" height="88" alt="ent"></div>
-      </a>
-    </div>
-  </section> --}}
-
-  {{!-- <section id="testonomials" style="margin-top:30px; margin-bottom:30px;">
-
-    <div class="max-w">
-      <div>
-        <div class="heading">Creating proud investors.</div>
-
-        <div style="display:flex; align-items:center; justify-content: space-between;" class="view-more">
-          <div id="para">You can feel the pride of being a Groww investor in their words.</div>
-          <a href="/api/showUserStocks/allUserReview"> <span> View More</span> <span> &#8594; </span> </a>
-        </div>
-
-        <!-- -- card -- -->
-
-        <div class="reviews">
-          <div>
-
-
-            <!-- -- card -- -->
-
-            <div id="card-div"
-              style="display:flex; align-items:center; justify-content: space-between; margin-top: 40px; width:100%">
-              {{#each result}}
-
-              <a href="#">
-                <div class="card">
-
-                  <div class="profile-img display-flx">
-
-                    <div><img class="UserImg"
-                        src="https://assets-netstorage.groww.in/web-assets/billion_groww_desktop/prod/build/client/images/ankitImg.863e0afa.png"
-                        width="56" height="56" alt="Ankit" /></div>
-
-                    <div></div>
-                  </div>
-
-                  <div class="say">{{this.comment}}</div>
-                  <div class="name">{{this.username}}</div>
-                  <div class="company">Product Specialist, Google</div>
-
-                </div>
-              </a>
-
-              {{/each}}
-            </div>
-
-          </div>
-        </div>
-      </div>
-    </div>
-
-  </section> --}}
-
+  
 
 
   <!-- -- footer - (START)-- -->
@@ -651,18 +535,7 @@
 
       </div>
 
-      {{!-- <section class="max-w">
-        <!-- -- underline-- -->
-
-        <div class="footerLine"></div>
-
-        <!-- -- copyright-section -- -->
-
-        <div class="copyRight"
-          style="display:flex; align-items:center; justify-content:space-between;  padding-bottom: 10px;">
-          <div class="" style="display:flex; align-items:center;">ⓒ&nbsp;TradeVirtually. All rights reserved</div>
-        </div>
-      </section> --}}
+      
 
     </div>
 
@@ -671,13 +544,9 @@
   <!-- -- footer - (END)-- -->
 
 
-
   <!-- -- image hover animation -- JS - Part -- -->
 
   <!-- ------   == (web) VanillaTilt JS ==  ------ -->
-
-
-
 
 
   <script>
@@ -1192,29 +1061,7 @@
     }());
 
 
-
-
   </script>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
   <script type="text/javascript">

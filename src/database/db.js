@@ -1,20 +1,20 @@
 var mysql = require("mysql2");
+const { DbConfig, DbMessages } = require("../constants/enums");
+const Logger = require("../utils/logger");
+
 var db = mysql.createConnection({
-  host: "127.0.0.1",
-  user: "root",
-  password: "Nasir@21",
-  database: "software_engg",
+  host: DbConfig.HOST,
+  user: DbConfig.USER,
+  password: DbConfig.PASSWORD,
+  database: DbConfig.DATABASE,
 });
 
-    db.connect(function (err) {
-      if (err) {
-        console.log("Error in db connectivity");
-      } else {
-        console.log("connected to database");
-      }
-    });
+db.connect(function (err) {
+  if (err) {
+    Logger.error(DbMessages.CONNECT_ERROR);
+  } else {
+    Logger.info(DbMessages.CONNECTED);
+  }
+});
 
-
-
-module.exports=db;
-
+module.exports = db;

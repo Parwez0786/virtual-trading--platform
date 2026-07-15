@@ -7,30 +7,23 @@ const {
   use
 } = require("passport");
 
-const CryptoJS = require("crypto-js");
-const key = "12345";
+const crypt = require("../utils/crypt");
+const {
+  Routes,
+  ViewNames,
+  TradeMessages,
+  FlashMessages,
+  StockIndexes,
+  StockIdentifiers,
+  rapidPriceUrl,
+  rapidHeaders,
+} = require("../constants/enums");
 
-var crypt = {
-  // (B1) THE SECRET KEY
-  secret: "CIPHERKEY",
-
-  // (B2) ENCRYPT
-  encrypt: (clear) => {
-    var cipher = CryptoJS.AES.encrypt(clear, crypt.secret);
-    return cipher.toString();
-  },
-
-  // (B3) DECRYPT
-  decrypt: (cipher) => {
-    var decipher = CryptoJS.AES.decrypt(cipher, crypt.secret);
-    return decipher.toString(CryptoJS.enc.Utf8);
-  },
-};
 router.get("/sellStocks", async (req, res) => {
   var id = req.query.id;
   var message = req.query.error;
 
-  res.render("sellStocks", {
+  res.render(ViewNames.SELL_STOCKS, {
     id,
     message
   });
@@ -38,24 +31,17 @@ router.get("/sellStocks", async (req, res) => {
 
 const getPriceNew = async (row) => {
   try {
-    row += "EQN";
-    const apiKey = "62bd052f8cmsh23bc0917e49ac99p114e72jsn0d060908d7c5";
-    const index = "NIFTY 200";
+    row += StockIdentifiers.EQN_SUFFIX;
     const response = await fetch(
-      `https://latest-stock-price.p.rapidapi.com/price?Indices=${index}&Identifier=${row}`, {
-        headers: {
-          "x-rapidapi-host": "latest-stock-price.p.rapidapi.com",
-          "x-rapidapi-key": apiKey,
-        },
+      rapidPriceUrl(StockIndexes.NIFTY_200, row), {
+        headers: rapidHeaders(),
       }
     );
 
     const data = await response.json();
-    // console.log(data)
     return data[0].lastPrice;
   } catch (err) {
-    console.error(err);
-    //  res.status(500).send("Server Error");
+    return undefined;
   }
 };
 router.post("/sellStock", async (req, res) => {
@@ -76,12 +62,10 @@ router.post("/sellStock", async (req, res) => {
 
   con.query(sql, async (error, result) => {
     if (error) {
-      console.log(error);
-      res.redirect(
+      return res.redirect(
         `/api/sell/sellStocks?id=${stockId}&error=` +
-        encodeURIComponent("Unexpected-error")
+        encodeURIComponent(TradeMessages.UNEXPECTED_ERROR)
       );
-      //   return;
     } else {
       if (result[0]) {
         if (result[0].units >= unit) {
@@ -93,14 +77,13 @@ router.post("/sellStock", async (req, res) => {
             if (error) {
               res.redirect(
                 `/api/sell/sellStocks?id=${stockId}&error=` +
-                encodeURIComponent("Invalid-Credential")
+                encodeURIComponent(TradeMessages.INVALID_CREDENTIAL)
               );
 
             } else {
               originalloss = result[0].loss;
               orginalprofit = result[0].profit;
 
-              // console.log(result[0]);
               let gg = crypt.decrypt(result[0].password);
               if (gg.localeCompare(password) == 0) {
                 original_amount_in_stockuser = result[0].amount;
@@ -133,11 +116,15 @@ router.post("/sellStock", async (req, res) => {
                   const sql3 = `update stockuser set amount=${original_amount_in_stockuser}, profit=${orginalprofit}, loss=${originalloss} where username="${username}"`;
                   con.query(sql3, async (error, result) => {
                     if (error) {
-                      console.log(error);
+                      return res.redirect(
+                        `/api/sell/sellStocks?id=${stockId}&error=${encodeURIComponent(
+                          TradeMessages.UNEXPECTED_ERROR
+                        )}`
+                      );
                     } else {
                       res.redirect(
                         `/api/sell/sellStocks?id=${stockId}&error=` +
-                        encodeURIComponent("Successfully sold")
+                        encodeURIComponent(TradeMessages.SUCCESSFULLY_SOLD)
                       );
                     }
                   });
@@ -145,10 +132,7 @@ router.post("/sellStock", async (req, res) => {
                   const sql5 = `delete from userStocks where id='${stockId}'`;
                   con.query(sql5, async (error, result) => {
                     if (error) {
-                      console.log(error);
-                      //    res.send("unsuccessfully");
-                    } else {
-                      console.log("succeffuly deleted")
+                      return;
                     }
                   });
                 } else {
@@ -162,7 +146,6 @@ router.post("/sellStock", async (req, res) => {
                     total_amount_invested_in_that_stock -
                     (total_amount_invested_in_that_stock * unit) /
                     units_in_database;
-                  //console.log(new_total_amount_invested);
 
                   if (currentValue >= totalamount_investifor_entered_unit) {
                     net_profit =
@@ -175,7 +158,6 @@ router.post("/sellStock", async (req, res) => {
                       totalamount_investifor_entered_unit -
                       currentValue;
                   }
-                  // console.log(net_loss);
 
                   if (net_profit >= 0) {
                     orginalprofit = orginalprofit + net_profit;
@@ -190,16 +172,24 @@ router.post("/sellStock", async (req, res) => {
                   const sql2 = `update userStocks set units=${new_units}, amt_invested=${new_total_amount_invested} where username="${username}" and id="${stockId}"`;
                   con.query(sql2, async (error, result) => {
                     if (error) {
-                      console.log("eroor");
+                      return res.redirect(
+                        `/api/sell/sellStocks?id=${stockId}&error=${encodeURIComponent(
+                          TradeMessages.UNEXPECTED_ERROR
+                        )}`
+                      );
                     } else {
                       const sql3 = `update stockuser set amount=${original_amount_in_stockuser},  profit=${orginalprofit}, loss=${originalloss} where username="${username}"`;
                       con.query(sql3, async (error, result) => {
                         if (error) {
-                          console.log(error);
+                          return res.redirect(
+                            `/api/sell/sellStocks?id=${stockId}&error=${encodeURIComponent(
+                              TradeMessages.UNEXPECTED_ERROR
+                            )}`
+                          );
                         } else {
                           res.redirect(
                             `/api/sell/sellStocks?id=${stockId}&error=` +
-                            encodeURIComponent("succeffully sold")
+                            encodeURIComponent(TradeMessages.SUCCESSFULLY_SOLD_TYPO)
                           );
                         }
                       });
@@ -209,7 +199,7 @@ router.post("/sellStock", async (req, res) => {
               } else {
                 res.redirect(
                   `/api/sell/sellStocks?id=${stockId}&error=` +
-                  encodeURIComponent("Invalid passwrod")
+                  encodeURIComponent(TradeMessages.INVALID_PASSWORD)
                 );
               }
             }
@@ -217,13 +207,13 @@ router.post("/sellStock", async (req, res) => {
         } else {
           res.redirect(
             `/api/sell/sellStocks?id=${stockId}&error=` +
-            encodeURIComponent("Invalid-creadential")
+            encodeURIComponent(TradeMessages.INVALID_CREDENTIAL_ALT)
           );
         }
       } else {
         res.redirect(
           `/api/sell/sellStocks?id=${stockId}&error=` +
-          encodeURIComponent("Invalid-creadential")
+          encodeURIComponent(TradeMessages.INVALID_CREDENTIAL_ALT)
         );
       }
     }
@@ -231,15 +221,12 @@ router.post("/sellStock", async (req, res) => {
 });
 
 
-//user review
 
 
-///auto buy
 router.get('/autoBuy', (req, res) => {
   var id = req.query.id;
   var error = req.query.error;
-  console.log('id from get auto buy' + id);
-  res.render('autoBuy', {
+  res.render(ViewNames.AUTO_BUY, {
     id,
     error
   });
@@ -248,84 +235,81 @@ router.get('/autoBuy', (req, res) => {
 router.post('/autoBuyStock', (req, res) => {
   var symbol2 = req.body.stockid
   let symbol = symbol2.substring(0, symbol2.length - 3);
-  console.log(symbol);
   var username = req.body.username;
   var password = req.body.password;
   var units = parseInt(req.body.units);
   var selected_price = parseFloat(req.body.targetPrice);
 
-  //verify user id and password
   var sql = `select * from stockuser where username='${username}'`;
 
   con.query(sql, (error, result) => {
     if (error) {
-      console.log(error, 'eroor in finding username')
-
+      return res.redirect(
+        `${Routes.SELL_AUTO_BUY}?id=${symbol2}&error=${encodeURIComponent(
+          FlashMessages.AUTO_ORDER_FAILED
+        )}`
+      );
     } else {
       if (result[0]) {
-        //verify password
         let gg = crypt.decrypt(result[0].password);
         if (gg.localeCompare(password) == 0) {
-          //password matches with username
-          //check for sufficient balance
           var amount_req = units * selected_price;
           if (result[0].amount < amount_req) {
-            console.log('insufficient balance')
-            console.log('symbol: ' + symbol)
             res.redirect(
-              `/api/sell/autoBuy?id=${symbol2}&error=Insufficient balance`
+              `${Routes.SELL_AUTO_BUY}?id=${symbol2}&error=${TradeMessages.INSUFFICIENT_BALANCE}`
             );
           } else {
-            //balance is sufficient
-            //now enter in the table autoBuy
             var sql = `select * from autoBuy where id='${symbol}' and username='${username}' and selected_price=${selected_price}`;
 
             con.query(sql, (error, result) => {
               if (error) {
-                console.log(error)
+                return res.redirect(
+                  `${Routes.SELL_AUTO_BUY}?id=${symbol2}&error=${encodeURIComponent(
+                    FlashMessages.AUTO_ORDER_FAILED
+                  )}`
+                );
               } else {
                 if (result[0]) {
-                  //if stock already in autoBuy
                   var newUnits = units + result[0].units;
                   var sql = `update autoBuy set units=${newUnits},selected_price=${selected_price} where id='${symbol}'`;
                   con.query(sql, (error, result) => {
                     if (error) {
-                      console.log(error)
-                    } else {
-                      console.log('sucess in autoBuy')
-                      console.log('symbol: ' + symbol)
-                      res.redirect(
-                        `/api/sell/autoBuy?id=${symbol2}&error=sucessfully added`
+                      return res.redirect(
+                        `${Routes.SELL_AUTO_BUY}?id=${symbol2}&error=${encodeURIComponent(
+                          FlashMessages.AUTO_ORDER_FAILED
+                        )}`
                       );
                     }
+                    res.redirect(
+                      `${Routes.SELL_AUTO_BUY}?id=${symbol2}&error=${TradeMessages.SUCCESSFULLY_ADDED}`
+                    );
                   })
                 } else {
                   var sql = `INSERT INTO autoBuy VALUES ('${symbol}', ${units}, '${username}', ${selected_price})`;
                   con.query(sql, (error, result) => {
                     if (error) {
-                      console.log(error)
-                    } else {
-                      console.log('sucess in autoBuy')
-                      console.log('symbol: ' + symbol)
-                      res.redirect(
-                        `/api/sell/autoBuy?id=${symbol2}&error=sucessfully added`
+                      return res.redirect(
+                        `${Routes.SELL_AUTO_BUY}?id=${symbol2}&error=${encodeURIComponent(
+                          FlashMessages.AUTO_ORDER_FAILED
+                        )}`
                       );
                     }
+                    res.redirect(
+                      `${Routes.SELL_AUTO_BUY}?id=${symbol2}&error=${TradeMessages.SUCCESSFULLY_ADDED}`
+                    );
                   })
                 }
               }
             })
           }
         } else {
-          console.log('symbol: ' + symbol)
           res.redirect(
-            `/api/sell/autoBuy?id=${symbol2}&error=wrong password`
+            `${Routes.SELL_AUTO_BUY}?id=${symbol2}&error=${TradeMessages.WRONG_PASSWORD}`
           );
         }
       } else {
-        console.log('symbol: ' + symbol)
         res.redirect(
-          `/api/sell/autoBuy?id=${symbol2}&error=invalid credentials`
+          `${Routes.SELL_AUTO_BUY}?id=${symbol2}&error=${TradeMessages.INVALID_CREDENTIALS}`
         );
       }
     }
@@ -333,82 +317,81 @@ router.post('/autoBuyStock', (req, res) => {
 
 })
 
-////auto sell
 router.get('/autoSell', (req, res) => {
   var id = req.query.id;
 
   var error = req.query.error;
-  console.log('id from get sell' + id);
-  res.render('autoSell', {
+  res.render(ViewNames.AUTO_SELL, {
     id,
     error
   });
 })
 
-////
 router.post('/autoSellStock', (req, res) => {
   var symbol2 = req.body.stockid
   let symbol = symbol2.substring(0, symbol2.length - 3);
-  console.log(symbol);
   var username = req.body.username;
   var password = req.body.password;
   var units = parseInt(req.body.units);
   var selected_price = parseFloat(req.body.targetPrice);
 
-  //verify user id and password
   var sql = `select * from stockuser where username='${username}'`;
 
   con.query(sql, (error, result) => {
     if (error) {
-      console.log(error, 'error in finding username during auto sell')
-
+      return res.redirect(
+        `${Routes.SELL_AUTO_SELL}?id=${symbol2}&error=${encodeURIComponent(
+          FlashMessages.AUTO_ORDER_FAILED
+        )}`
+      );
     } else {
       if (result[0]) {
-        //verify password
         let gg = crypt.decrypt(result[0].password);
         if (gg.localeCompare(password) == 0) {
-          //password matches with username
-          //check for sufficient balance
 
           if (result[0].units >= units) {
-            console.log('insufficient balance')
             res.redirect(
-              `/api/sell/autoSell?id=${symbol2}&error=Insufficient units`
+              `${Routes.SELL_AUTO_SELL}?id=${symbol2}&error=${TradeMessages.INSUFFICIENT_UNITS}`
             );
           } else {
-            //balance is sufficient
-            //now enter in the table autoBuy
             var sql = `select * from autoSell where id='${symbol}' and username='${username}' and selected_price=${selected_price}`;
 
             con.query(sql, (error, result) => {
               if (error) {
-                console.log(error)
+                return res.redirect(
+                  `${Routes.SELL_AUTO_SELL}?id=${symbol2}&error=${encodeURIComponent(
+                    FlashMessages.AUTO_ORDER_FAILED
+                  )}`
+                );
               } else {
                 if (result[0]) {
-                  //if stock already in autoSell
                   var newUnits = result[0].units + units;
                   var sql = `update autoSell set units=${newUnits},selected_price=${selected_price} where id='${symbol}'`;
                   con.query(sql, (error, result) => {
                     if (error) {
-                      console.log(error)
-                    } else {
-                      console.log('sucess in autoSell')
-                      res.redirect(
-                        `/api/sell/autoSell?id=${symbol2}&error=sucessfully added`
+                      return res.redirect(
+                        `${Routes.SELL_AUTO_SELL}?id=${symbol2}&error=${encodeURIComponent(
+                          FlashMessages.AUTO_ORDER_FAILED
+                        )}`
                       );
                     }
+                    res.redirect(
+                      `${Routes.SELL_AUTO_SELL}?id=${symbol2}&error=${TradeMessages.SUCCESSFULLY_ADDED}`
+                    );
                   })
                 } else {
                   var sql = `INSERT INTO autoSell VALUES ('${symbol}', ${units}, '${username}', ${selected_price})`;
                   con.query(sql, (error, result) => {
                     if (error) {
-                      console.log(error)
-                    } else {
-                      console.log('sucess in autoSell')
-                      res.redirect(
-                        `/api/sell/autoSell?id=${symbol2}&error=sucessfully added`
+                      return res.redirect(
+                        `${Routes.SELL_AUTO_SELL}?id=${symbol2}&error=${encodeURIComponent(
+                          FlashMessages.AUTO_ORDER_FAILED
+                        )}`
                       );
                     }
+                    res.redirect(
+                      `${Routes.SELL_AUTO_SELL}?id=${symbol2}&error=${TradeMessages.SUCCESSFULLY_ADDED}`
+                    );
                   })
                 }
               }
@@ -416,21 +399,19 @@ router.post('/autoSellStock', (req, res) => {
           }
         } else {
           res.redirect(
-            `/api/sell/autoSell?id=${symbol2}&error=wrong password`
+            `${Routes.SELL_AUTO_SELL}?id=${symbol2}&error=${TradeMessages.WRONG_PASSWORD}`
           );
         }
       } else {
         res.redirect(
-          `/api/sell/autoSell?id=${symbol2}&error=invalid credentials`
+          `${Routes.SELL_AUTO_SELL}?id=${symbol2}&error=${TradeMessages.INVALID_CREDENTIALS}`
         );
       }
     }
   })
 
 })
-///
 
-///
 
 
 

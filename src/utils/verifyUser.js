@@ -1,17 +1,16 @@
-const cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
-const express = require("express");
+const {
+  AuthSecrets,
+  CookieNames,
+} = require("../constants/enums");
 
 const verifyUser = (req, res, next) => {
-  console.log("h");
-  
-  let cookie = req.cookies.access_token;
+  let cookie = req.cookies[CookieNames.ACCESS_TOKEN];
   if (!cookie) next();
-  jwt.verify(cookie, "parwez", (err, user) => {
+  jwt.verify(cookie, AuthSecrets.JWT, (err, user) => {
     req.user = user;
     next();
   });
 };
 
 exports.verifyUser = verifyUser;
-

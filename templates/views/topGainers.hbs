@@ -79,33 +79,7 @@
        </div> -->
 
 
-
-    {{!-- <div class="right" id="right">
-        <a class="insideBtn">
-
-            <div class="MFdiv">
-                <p class="MFtext">Company</p>
-                <div class="returns">Year Low</div>
-                <div class="returns">Year High</div>
-                <div class="returns">Current Price</div>
-            </div>
-
-        </a>
-        {{#each sortedData}}
-        <a class="insideBtn" href="/api/showUserStocks/productDescription?id={{this.symbol}}">
-
-            <div class="MFdiv">
-                <img src="/images/growth.png" alt="">
-                <p class="MFtext">{{this.symbol}}</p>
-                <div class="returns">{{this.yearLow}}</div>
-                <div class="returns">{{this.yearHigh}}</div>
-                <div class="returns">{{this.lastPrice}}</div>
-            </div>
-
-        </a>
-
-        {{/each}}
-    </div> --}}
+    
     <nav id="navBar">
         <img id="navLogo" src="/images/logo2.png" alt="logo">
         <h2>Trade Vantage</h2>
@@ -131,12 +105,7 @@
                 <div class="col col-4"><b>52W High</b></div>
                 <div class="col col-5"><b>52W Low</b></div>
             </li>
-            {{!-- <li class="table-row">
-                <div class="col col-1" data-label="Job Id">42235</div>
-                <div class="col col-2" data-label="Customer Name">John Doe</div>
-                <div class="col col-3" data-label="Amount">$350</div>
-                <div class="col col-4" data-label="Payment Status">Pending</div>
-            </li> --}}
+            
             {{#each resultWithProfit}}
             <a
                 href="/api/showUserStocks/productDescription?id={{this.symbol}}&identifier='{{this.identifier}}'&open={{this.open}}&dayHigh={{this.dayHigh}}&dayLow={{this.dayLow}}&lastPrice={{this.lastPrice}}&previousClose={{this.previousClose}}&change={{this.change}}&pChange={{this.pChange}}&totalTradedVolume={{this.totalTradedVolume}}&totalTradedValue={{this.totalTradedValue}}&lastUpdateTime={{this.lastUpdateTime}}&yearHigh={{this.yearHigh}}&yearLow={{this.yearLow}}&perChange365d={{this.perChange365d}}&perChange30d={{this.perChange30d}}">
@@ -158,12 +127,6 @@
             {{/each}}
         </ul>
     </div>
-
-
-
-
-
-
 
 
     <!-- -- footer - (START)-- -->
@@ -201,7 +164,6 @@
     <script src="/scripts/search_box.js"></script>
     <script src="/scripts/changeNavbar.js"></script>
     <script>
-
 
 
     </script>

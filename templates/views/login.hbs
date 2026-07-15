@@ -480,7 +480,7 @@
         <div><span class="dot"></span></div>
     </div>
         
-         <h3 id="flash"> {{message}}</h1>
+         <h3 id="flash">{{message}}</h3>
         
     <div class="container" id="container">
         <div class="form-container sign-up-container">
@@ -512,14 +512,9 @@
                 <input type="text" id="username" name="custid" placeholder="ID">
                 <input type="password" id="password" name="password" placeholder="password">
 
-                {{!-- <button><a href="/api/auth/forget-password/">Forget Password</a></button> --}}
                 <a href="/api/auth/forget-password/">Forgot your password?</a>
 
-                {{!-- <input id="btn" class="btn" type="submit" value="Login"> --}}
                 <input id="button1" class="btn" type="submit" value="Sign In">
-                {{!-- <button><span>Don't have an account?</span><a
-                        href="/api/registerauth/register">Register</a></button> --}}
-
 
             </form>
         </div>
@@ -548,12 +543,22 @@
 
         signInButton.addEventListener('click', () =>
             container.classList.remove('right-panel-active'));
-          let id= document.getElementById('flash');
-        setTimeout(function(){
-    // Find the alert element and hide it
-    var alertElement = document.getElementById("flash");
-    alertElement.style.display = "none";
-}, 3000);
+
+        (function showFlash() {
+            var alertElement = document.getElementById("flash");
+            if (!alertElement) return;
+            var text = (alertElement.textContent || "").trim();
+            if (text) {
+                if (typeof swal === "function") {
+                    swal({ title: text, type: "info" });
+                }
+                setTimeout(function () {
+                    alertElement.style.display = "none";
+                }, 4000);
+            } else {
+                alertElement.style.display = "none";
+            }
+        })();
     </script>
    
 </body>

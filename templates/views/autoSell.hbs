@@ -1,84 +1,3 @@
-{{!--
-<!DOCTYPE html>
-<html>
-
-<head>
-    <title>Sell Stocks</title>
-    <style>
-        /* Center the form */
-        form {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-top: 50px;
-        }
-
-        /* Style the form labels */
-        label {
-            font-size: 18px;
-            margin-bottom: 10px;
-        }
-
-        /* Style the form inputs */
-        input[type="number"],
-        input[type="text"],
-        input[type="password"] {
-            padding: 10px;
-            font-size: 16px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            width: 300px;
-            margin-bottom: 20px;
-        }
-
-        /* Style the form submit button */
-        input[type="submit"] {
-            padding: 10px 20px;
-            font-size: 18px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        /* Style the form submit button on hover */
-        input[type="submit"]:hover {
-            background-color: #3e8e41;
-        }
-
-        h1 {
-            text-align: center;
-        }
-    </style>
-</head>
-
-<body>
-    <h1>Sell Stocks</h1>
-    <form action="/api/sell/sellStock" method="post">
-        <label for="units">Units:</label>
-        <input type="number" id="units" name="units" required><br><br>
-
-        <label for="stockid">Stock ID:</label>
-        <input type="text" id="stockid" value="{{id}}" name="stockid" required><br><br>
-
-        <label for="username">Username:</label>
-        <input type="text" id="username" name="username" required><br><br>
-
-        <label for="password">Password:</label>
-        <input type="password" id="password" name="password" required><br><br>
-
-        <input type="submit" value="Sell">
-    </form>
-</body>
-
-</html> --}}
-
-
-
-
-
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -304,7 +223,7 @@
             <label for="units">Units:</label>
             <input type="number" id="units" name="units" required><br><br>
 
-            {{!-- <label for="stockid">Stock ID:</label> --}}
+            
             <input type="hidden" id="stockid" value="{{id}}" name="stockid" required>
 
             <label for="targetPrice">Target Price:</label>

@@ -6,61 +6,45 @@ const yahooFinance = require("yahoo-finance2").default;
 var flash = require("connect-flash");
 const fetch = require("node-fetch");
 
-const CryptoJS = require("crypto-js");
-const key = "12345";
-
-var crypt = {
-  // (B1) THE SECRET KEY
-  secret: "CIPHERKEY",
-
-  // (B2) ENCRYPT
-  encrypt: (clear) => {
-    var cipher = CryptoJS.AES.encrypt(clear, crypt.secret);
-    return cipher.toString();
-  },
-
-  // (B3) DECRYPT
-  decrypt: (cipher) => {
-    var decipher = CryptoJS.AES.decrypt(cipher, crypt.secret);
-    return decipher.toString(CryptoJS.enc.Utf8);
-  },
-};
+const crypt = require("../utils/crypt");
+const {
+  ViewNames,
+  FlashMessages,
+  TradeMessages,
+  StatusMessages,
+  StockIndexes,
+  StockIdentifiers,
+  rapidPriceUrl,
+  rapidHeaders,
+} = require("../constants/enums");
 
 const getPrice = async (row) => {
   return new Promise((resolve, reject) => {
     yahooFinance
       .quote(row)
       .then((quote) => {
-        // console.log(quote.regularMarketPrice);
 
         resolve(quote.regularMarketPrice);
       })
       .catch((err) => {
-        console.error(err);
+        resolve(undefined);
       });
   });
 };
 
 const getPriceNew = async (row) => {
   try {
-    row += "EQN";
-    const apiKey = "62bd052f8cmsh23bc0917e49ac99p114e72jsn0d060908d7c5";
-    const index = "NIFTY 200";
+    row += StockIdentifiers.EQN_SUFFIX;
     const response = await fetch(
-      `https://latest-stock-price.p.rapidapi.com/price?Indices=${index}&Identifier=${row}`, {
-        headers: {
-          "x-rapidapi-host": "latest-stock-price.p.rapidapi.com",
-          "x-rapidapi-key": apiKey,
-        },
+      rapidPriceUrl(StockIndexes.NIFTY_200, row), {
+        headers: rapidHeaders(false),
       }
     );
 
     const data = await response.json();
-    // console.log(data)
     return data[0].lastPrice;
   } catch (err) {
-    console.error(err);
-    //  res.status(500).send("Server Error");
+    return undefined;
   }
 };
 router.get("/showUserStocks", async (req, res) => {
@@ -68,13 +52,15 @@ router.get("/showUserStocks", async (req, res) => {
     const sql = `SELECT * FROM userStocks`;
     con.query(sql, async (error, result) => {
       if (error) {
-        // console.log(error);
-        res.sendStatus(500);
-        //   return;
+        return res.redirect(
+          `/api/showUserStocks/showUserStocks?error=${encodeURIComponent(
+            FlashMessages.DB_ERROR
+          )}`
+        );
       }
 
       if (result.length === 0) {
-        res.render("showUserStocks", {
+        res.render(ViewNames.SHOW_USER_STOCKS, {
           resultWithProfit: [],
         });
         return;
@@ -82,7 +68,6 @@ router.get("/showUserStocks", async (req, res) => {
 
       const resultWithProfit = await Promise.all(
         result.map(async (row) => {
-          // console.log(row);
 
           const price = await getPriceNew(row.id);
           var currValue = parseFloat(price) * parseInt(row.units);
@@ -95,7 +80,6 @@ router.get("/showUserStocks", async (req, res) => {
             flagProfit = true;
           }
 
-          // console.log(profit);
           return {
             ...row,
             currValue: currValue,
@@ -105,26 +89,24 @@ router.get("/showUserStocks", async (req, res) => {
         })
       );
 
-      res.render("showUserStocks", {
+      res.render(ViewNames.SHOW_USER_STOCKS, {
         resultWithProfit,
       });
     });
   } catch (error) {
-    // console.log(error);
-    res.sendStatus(500);
+    res.redirect(
+      `/api/showUserStocks/showUserStocks?error=${encodeURIComponent(
+        FlashMessages.TRY_AGAIN
+      )}`
+    );
   }
 });
 
 router.get("/stockSelect", async (req, res) => {
   try {
-    const apiKey = "b50e47636emshec659faa495b4e4p163ca3jsna5ada859cc6e";
-    const index = "NIFTY 200";
     const response = await fetch(
-      `https://latest-stock-price.p.rapidapi.com/price?Indices=${index}`, {
-        headers: {
-          "x-rapidapi-host": "latest-stock-price.p.rapidapi.com",
-          "x-rapidapi-key": apiKey,
-        },
+      rapidPriceUrl(StockIndexes.NIFTY_200), {
+        headers: rapidHeaders(true),
       }
     );
 
@@ -133,7 +115,6 @@ router.get("/stockSelect", async (req, res) => {
       a.identifier > b.identifier ? 1 : -1
     );
 
-    //  console.log("sortedData"+sortedData);
     const resultWithProfit = await Promise.all(
       sortedData.map(async (row) => {
         var flagProfit = false;
@@ -148,39 +129,41 @@ router.get("/stockSelect", async (req, res) => {
       })
     );
 
-    // console.log(resultWithProfit[0] + "hshfiweu");
 
-    res.render("stockSelect", {
+    res.render(ViewNames.STOCK_SELECT, {
       resultWithProfit,
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).send("Server Error");
+    res.redirect(
+      `/api/showUserStocks/stockSelect?error=${encodeURIComponent(
+        FlashMessages.STOCK_FETCH_FAILED
+      )}`
+    );
   }
 });
 
 router.get("/buy", async (req, res) => {
   try {
     const id = req.query.id;
-    // console.log(id);
 
     const message = req.query.message;
-    //search if this id exist in userStocks
     var sql = `SELECT * FROM stocks WHERE id=?`;
     con.query(sql, [id], (error, result) => {
       if (error) {
-        // console.log(error);
+        return res.redirect(
+          `/api/showUserStocks/stockSelect?error=${encodeURIComponent(
+            FlashMessages.DB_ERROR
+          )}`
+        );
       }
-      // console.log(result);
 
-      res.render("buy", {
+      res.render(ViewNames.BUY, {
         result,
         message,
       });
     });
   } catch (error) {
     if (error) {
-      // console.log(error);
     }
   }
 });
@@ -190,16 +173,12 @@ router.post("/post", middlewares.verifyUser, async (req, res) => {
     var id = req.body.id; //stock id
     var userId = req.body.userId;
     var units = parseInt(req.body.units);
-    // console.log("unit " + units);
     var password = req.body.password;
-    // console.log(userId, units);
     var open = req.body.open;
-    // console.log("open " + open);
 
     var name = req.body.name;
 
     var identifier = name;
-    console.log(name);
 
     const dayHigh = parseFloat(req.body.dayHigh);
     const dayLow = req.body.dayLow;
@@ -207,8 +186,6 @@ router.post("/post", middlewares.verifyUser, async (req, res) => {
     const previousClose = req.body.previousClose;
     const change = req.body.change;
     const pChange = req.body.pChange;
-    // console.log(pChange,dayHigh);
-    // console.log("jfhs")
     const totalTradedVolume = req.body.totalTradedVolume;
     const totalTradedValue = req.body.totalTradedValue;
     const lastUpdateTime = req.body.lastUpdateTime;
@@ -217,120 +194,115 @@ router.post("/post", middlewares.verifyUser, async (req, res) => {
     const perChange365d = req.body.perChange365d;
     const perChange30d = req.body.perChange30d;
 
-    //check if userId exist
 
-    // console.log(crypt.encrypt(password));
 
     var sql = `select * from stockuser where username='${userId}'`;
     con.query(sql, (error, result) => {
       if (error) {
-        console.log(error);
-      } else {
-        console.log(result);
-        
-        // console.log(result);
+        return res.redirect(
+          `/api/showUserStocks/productDescription?id=${id}&error=${encodeURIComponent(
+            TradeMessages.TRANSACTION_FAIL
+          )}`
+        );
+      }
+      {
         let gg = crypt.decrypt(result[0].password);
         if (gg.localeCompare(password) == 0) {
           if (result[0]) {
-            //
             var cost = units * open;
 
-            // console.log("cost " + cost);
 
             if (cost > result[0].amount) {
-              //req.flash("message", "please enter  custid");
               res.redirect(
                 `/api/showUserStocks/productDescription?id=${id}&identifier=${identifier}&open=${open}&dayHigh=${dayHigh}&dayLow=${dayLow}&lastPrice=${lastPrice}&previousClose=${previousClose}&change=${change}&pChange=${pChange}&totalTradedVolume=${totalTradedVolume}&totalTradedValue=${totalTradedValue}&lastUpdateTime=${lastUpdateTime}&yearHigh=${yearHigh}&yearLow=${yearLow}&perChange365d=${perChange365d}&perChange30d=${perChange30d}&error=` +
-                encodeURIComponent("Insufficient-Fund")
+                encodeURIComponent(TradeMessages.INSUFFICIENT_FUND)
               );
             } else {
-              //update the balance of user in buyer table
               var newAmount = result[0].amount - cost;
               var sql2 = `update stockuser set amount=${newAmount} where username='${userId}'`;
               con.query(sql2, (error, result) => {
                 if (error) {
-                  // console.log(error);
+                  return res.redirect(
+                    `/api/showUserStocks/productDescription?id=${id}&error=${encodeURIComponent(
+                      TradeMessages.TRANSACTION_FAIL
+                    )}`
+                  );
                 }
               });
-              ////
 
-              //check if stock already present in userStocks
               var sql = `SELECT * FROM userStocks WHERE id=? and username='${req.user.username}'`;
               con.query(sql, [id], (error, result) => {
                 if (error) {
-                  console.log(error);
+                  return res.redirect(
+                    `/api/showUserStocks/productDescription?id=${id}&error=${encodeURIComponent(
+                      TradeMessages.TRANSACTION_FAIL
+                    )}`
+                  );
                 }
-                // console.log(result);
                 if (result[0]) {
-                  //if exist
                   var newUnit = result[0].units + units;
-                  // console.log("djshfdus->"+result[0].units);
                   var newamt = result[0].amt_invested + cost;
-                  // console.log('yyyy', newUnit);
-                  // console.log('newamt', newAmount);
                   var sql = `UPDATE userStocks set units=${newUnit}, amt_invested=${newamt} WHERE id="${id}" and username='${req.user.username}'`;
                   con.query(sql, (error, result) => {
                     if (error) {
-                      console.log(error);
+                      return res.redirect(
+                        `/api/showUserStocks/productDescription?id=${id}&error=${encodeURIComponent(
+                          TradeMessages.TRANSACTION_FAIL
+                        )}`
+                      );
                     }
-                    // alert('Succefully done');
                     res.redirect(
                       `/api/showUserStocks/productDescription?id=${id}&identifier=${identifier}&open=${open}&dayHigh=${dayHigh}&dayLow=${dayLow}&lastPrice=${lastPrice}&previousClose=${previousClose}&change=${change}&pChange=${pChange}&totalTradedVolume=${totalTradedVolume}&totalTradedValue=${totalTradedValue}&lastUpdateTime=${lastUpdateTime}&yearHigh=${yearHigh}&yearLow=${yearLow}&perChange365d=${perChange365d}&perChange30d=${perChange30d}&error=` +
-                      encodeURIComponent("Transaction-successfull")
+                      encodeURIComponent(TradeMessages.TRANSACTION_SUCCESS)
                     );
                   });
                 } else {
-                  // console.log(req.user.username);
 
                   var sql = `INSERT INTO userStocks VALUES(?,?,?,?,?)`;
-                  // console.log(name);
 
                   var values = [id, name, units, cost, req.user.username];
-                  // console.log(values);
 
                   con.query(sql, values, (error, result) => {
                     if (error) {
                       res.redirect(
                         `/api/showUserStocks/productDescription?id=${id}&identifier=${identifier}&open=${open}&dayHigh=${dayHigh}&dayLow=${dayLow}&lastPrice=${lastPrice}&previousClose=${previousClose}&change=${change}&pChange=${pChange}&totalTradedVolume=${totalTradedVolume}&totalTradedValue=${totalTradedValue}&lastUpdateTime=${lastUpdateTime}&yearHigh=${yearHigh}&yearLow=${yearLow}&perChange365d=${perChange365d}&perChange30d=${perChange30d}&error=` +
-                        encodeURIComponent("Transaction Unsuccessful")
+                        encodeURIComponent(TradeMessages.TRANSACTION_FAIL)
                       );
                     }
-                    // alert('Succefully done');
                     res.redirect(
                       `/api/showUserStocks/productDescription?id=${id}&identifier=${identifier}&open=${open}&dayHigh=${dayHigh}&dayLow=${dayLow}&lastPrice=${lastPrice}&previousClose=${previousClose}&change=${change}&pChange=${pChange}&totalTradedVolume=${totalTradedVolume}&totalTradedValue=${totalTradedValue}&lastUpdateTime=${lastUpdateTime}&yearHigh=${yearHigh}&yearLow=${yearLow}&perChange365d=${perChange365d}&perChange30d=${perChange30d}&error=` +
-                      encodeURIComponent("Transaction-successfull")
+                      encodeURIComponent(TradeMessages.TRANSACTION_SUCCESS)
                     );
                   });
                 }
               });
             }
           } else {
-            // res.redirect('buy')
             res.redirect(
               `/api/showUserStocks/productDescription?id=${id}&identifier=${identifier}&open=${open}&dayHigh=${dayHigh}&dayLow=${dayLow}&lastPrice=${lastPrice}&previousClose=${previousClose}&change=${change}&pChange=${pChange}&totalTradedVolume=${totalTradedVolume}&totalTradedValue=${totalTradedValue}&lastUpdateTime=${lastUpdateTime}&yearHigh=${yearHigh}&yearLow=${yearLow}&perChange365d=${perChange365d}&perChange30d=${perChange30d}&error=` +
-              encodeURIComponent("user-not exist")
+              encodeURIComponent(TradeMessages.USER_NOT_EXIST)
             );
           }
         } else {
-          // console.log("incorrect password");
           res.redirect(
             `/api/showUserStocks/productDescription?id=${id}&identifier=${identifier}&open=${open}&dayHigh=${dayHigh}&dayLow=${dayLow}&lastPrice=${lastPrice}&previousClose=${previousClose}&change=${change}&pChange=${pChange}&totalTradedVolume=${totalTradedVolume}&totalTradedValue=${totalTradedValue}&lastUpdateTime=${lastUpdateTime}&yearHigh=${yearHigh}&yearLow=${yearLow}&perChange365d=${perChange365d}&perChange30d=${perChange30d}&error=` +
-            encodeURIComponent("Invalid-Password")
+            encodeURIComponent(TradeMessages.INVALID_PASSWORD_ALT)
           );
         }
       }
     });
   } catch (error) {
-    if (error) {
-      // console.log(error);
-    }
+    res.redirect(
+      `/api/showUserStocks/stockSelect?error=${encodeURIComponent(
+        FlashMessages.TRY_AGAIN
+      )}`
+    );
   }
 });
 
 router.get("/productDescription", async (req, res, next) => {
   var message = req.query.error;
 
-  ////////
   const {
     id,
     identifier,
@@ -370,11 +342,7 @@ router.get("/productDescription", async (req, res, next) => {
   };
 
   var autoBuyIdentfier = identifier.substring(1,identifier.length-1);
-  console.log("autoBuyIdentfier"+autoBuyIdentfier);
-  // console.log(quote);
-  //////////
   var symbol = quote.id + ".NS";
-  // console.log("symbol"+symbol);
   const today = new Date();
   const end = today.toISOString().slice(0, 10);
   const start = new Date(
@@ -395,24 +363,21 @@ router.get("/productDescription", async (req, res, next) => {
       var data = await yahooFinance.historical(symbol, options);
       return data;
     } catch (error) {
-      console.log(error);
+      return undefined;
     }
   };
 
-  // Use async/await syntax to wait for Promise to resolve
   async function getStockData() {
     let stockData = await fun(symbol, options);
-    // console.log("stockData", stockData);
 
     if (!stockData) {
       res
         .status(404)
         .send(
-          '<h2 style="display:flex; justify-content:center; align-items:center;">Stock data not available yet. Please refresh to try again later.</h2>'
+          `<h2 style="display:flex; justify-content:center; align-items:center;">${StatusMessages.STOCK_DATA_UNAVAILABLE}</h2>`
         );
     } else {
       // now take two arrays , one for date and one for price of stock at that date
-      // console.log('inside')
       var dates = [];
       var prices = [];
       stockData.forEach((obj) => {
@@ -431,7 +396,7 @@ router.get("/productDescription", async (req, res, next) => {
         prices.push(price);
       });
 
-      res.render("productDescription", {
+      res.render(ViewNames.PRODUCT_DESCRIPTION, {
         quote,
         message,
         prices: JSON.stringify(prices),
@@ -443,19 +408,13 @@ router.get("/productDescription", async (req, res, next) => {
 
   getStockData();
 
-  /////
 });
 
 router.get("/stockHome", middlewares.verifyUser, async (req, res) => {
   try {
-    const apiKey = "b50e47636emshec659faa495b4e4p163ca3jsna5ada859cc6e";
-    const index = "NIFTY 200";
     const response = await fetch(
-      `https://latest-stock-price.p.rapidapi.com/price?Indices=${index}`, {
-        headers: {
-          "x-rapidapi-host": "latest-stock-price.p.rapidapi.com",
-          "x-rapidapi-key": apiKey,
-        },
+      rapidPriceUrl(StockIndexes.NIFTY_200), {
+        headers: rapidHeaders(true),
       }
     );
 
@@ -471,36 +430,34 @@ router.get("/stockHome", middlewares.verifyUser, async (req, res) => {
     var sql = `select * from reviews`;
     con.query(sql, (error, result) => {
       if (error) {
-        console.log(error);
-      } else {
-        console.log(result);
-        res.render("stockHome", {
-          result,
-          name,
-          email,
-          sortedData,
-        });
+        return res.redirect(
+          `/api/showUserStocks/stockSelect?error=${encodeURIComponent(
+            FlashMessages.DB_ERROR
+          )}`
+        );
       }
+      res.render(ViewNames.STOCK_HOME, {
+        result,
+        name,
+        email,
+        sortedData,
+      });
     });
-    // console.log(sortedData);
   } catch (err) {
-    console.error(err);
-    res.status(500).send("Server Error");
+    res.redirect(
+      `/api/showUserStocks/stockSelect?error=${encodeURIComponent(
+        FlashMessages.STOCK_FETCH_FAILED
+      )}`
+    );
   }
 });
 
-//most bought
 
 router.get("/mostBought", async (req, res, next) => {
   try {
-    const apiKey = "b50e47636emshec659faa495b4e4p163ca3jsna5ada859cc6e";
-    const index = "NIFTY 200";
     const response = await fetch(
-      `https://latest-stock-price.p.rapidapi.com/price?Indices=${index}`, {
-        headers: {
-          "x-rapidapi-host": "latest-stock-price.p.rapidapi.com",
-          "x-rapidapi-key": apiKey,
-        },
+      rapidPriceUrl(StockIndexes.NIFTY_200), {
+        headers: rapidHeaders(true),
       }
     );
 
@@ -508,7 +465,6 @@ router.get("/mostBought", async (req, res, next) => {
     const sortedData = data.sort((a, b) =>
       a.totalTradedVolume <= b.totalTradedVolume ? 1 : -1
     );
-    // console.log(sortedData);
 
     const resultWithProfit = await Promise.all(
       sortedData.map(async (row) => {
@@ -524,33 +480,29 @@ router.get("/mostBought", async (req, res, next) => {
       })
     );
 
-    res.render("mostBought", {
+    res.render(ViewNames.MOST_BOUGHT, {
       resultWithProfit,
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).send("Server Error");
+    res.redirect(
+      `/api/showUserStocks/stockSelect?error=${encodeURIComponent(
+        FlashMessages.STOCK_FETCH_FAILED
+      )}`
+    );
   }
 });
 
-// top gainers
 
 router.get("/topGainers", async (req, res, next) => {
   try {
-    const apiKey = "b50e47636emshec659faa495b4e4p163ca3jsna5ada859cc6e";
-    const index = "NIFTY 200";
     const response = await fetch(
-      `https://latest-stock-price.p.rapidapi.com/price?Indices=${index}`, {
-        headers: {
-          "x-rapidapi-host": "latest-stock-price.p.rapidapi.com",
-          "x-rapidapi-key": apiKey,
-        },
+      rapidPriceUrl(StockIndexes.NIFTY_200), {
+        headers: rapidHeaders(true),
       }
     );
 
     const data = await response.json();
     const sortedData = data.sort((a, b) => (a.pChange <= b.pChange ? 1 : -1));
-    // console.log(sortedData);
 
     const resultWithProfit = await Promise.all(
       sortedData.map(async (row) => {
@@ -566,27 +518,24 @@ router.get("/topGainers", async (req, res, next) => {
       })
     );
 
-    res.render("topGainers", {
+    res.render(ViewNames.TOP_GAINERS, {
       resultWithProfit,
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).send("Server Error");
+    res.redirect(
+      `/api/showUserStocks/stockSelect?error=${encodeURIComponent(
+        FlashMessages.STOCK_FETCH_FAILED
+      )}`
+    );
   }
 });
 
-// top losers
 
 router.get("/topLosers", async (req, res, next) => {
   try {
-    const apiKey = "b50e47636emshec659faa495b4e4p163ca3jsna5ada859cc6e";
-    const index = "NIFTY 200";
     const response = await fetch(
-      `https://latest-stock-price.p.rapidapi.com/price?Indices=${index}`, {
-        headers: {
-          "x-rapidapi-host": "latest-stock-price.p.rapidapi.com",
-          "x-rapidapi-key": apiKey,
-        },
+      rapidPriceUrl(StockIndexes.NIFTY_200), {
+        headers: rapidHeaders(true),
       }
     );
 
@@ -607,21 +556,23 @@ router.get("/topLosers", async (req, res, next) => {
       })
     );
 
-    res.render("topLosers", {
+    res.render(ViewNames.TOP_LOSERS, {
       resultWithProfit,
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).send("Server Error");
+    res.redirect(
+      `/api/showUserStocks/stockSelect?error=${encodeURIComponent(
+        FlashMessages.STOCK_FETCH_FAILED
+      )}`
+    );
   }
 });
 
-//user review
 
 router.get("/userReview", middlewares.verifyUser, async (req, res) => {
   var username = req.user.username;
 
-  res.render("userReview", {
+  res.render(ViewNames.USER_REVIEW, {
     username
   });
 });
@@ -632,11 +583,14 @@ router.post("/review", middlewares.verifyUser, async (req, res, next) => {
   var sql = `insert into reviews (username, rating, comment) values ('${username}', ${rating}, '${comment}')`;
   con.query(sql, (error, result) => {
     if (error) {
-      // console.log(error);
+      return res.redirect(
+        `/api/showUserStocks/userReview?error=${encodeURIComponent(
+          FlashMessages.DB_ERROR
+        )}`
+      );
     }
-    // console.log(result);
 
-    res.render("userReview", {
+    res.render(ViewNames.USER_REVIEW, {
       username,
     });
   });
@@ -645,43 +599,37 @@ router.post("/review", middlewares.verifyUser, async (req, res, next) => {
 router.get("/allUserReview", middlewares.verifyUser, async (req, res) => {
   var name = req.user.Name;
   var email = req.user.email;
-  console.log(name);
 
   var sql = `select * from reviews`;
   con.query(sql, (error, result) => {
     if (error) {
-      console.log(error);
-    } else {
-      console.log(result);
-      res.render("allUserReview", {
-        result,
-        name,
-        email,
-      });
+      return res.redirect(
+        `/api/showUserStocks/stockHome?error=${encodeURIComponent(
+          FlashMessages.DB_ERROR
+        )}`
+      );
     }
+    res.render(ViewNames.ALL_USER_REVIEW, {
+      result,
+      name,
+      email,
+    });
   });
 });
 
 const getPriceNew1 = async (row) => {
   try {
-    row += "EQN";
-    const apiKey = "62bd052f8cmsh23bc0917e49ac99p114e72jsn0d060908d7c5";
-    const index = "NIFTY 200";
+    row += StockIdentifiers.EQN_SUFFIX;
     const response = await fetch(
-      `https://latest-stock-price.p.rapidapi.com/price?Indices=${index}&Identifier=${row}`, {
-        headers: {
-          "x-rapidapi-host": "latest-stock-price.p.rapidapi.com",
-          "x-rapidapi-key": apiKey,
-        },
+      rapidPriceUrl(StockIndexes.NIFTY_200, row), {
+        headers: rapidHeaders(false),
       }
     );
 
     const data = await response.json();
-    // console.log(data)
     return data[0];
   } catch (err) {
-    console.error(err);
-    //  res.status(500).send("Server Error");
+    return undefined;
   }
 };
 
@@ -690,16 +638,18 @@ router.get("/wishlist", middlewares.verifyUser, async (req, res) => {
 
   con.query(sql, async (error, result) => {
     if (error) {
-      console.log(error);
+      return res.redirect(
+        `/api/showUserStocks/wishlist?error=${encodeURIComponent(
+          FlashMessages.DB_ERROR
+        )}`
+      );
     }
 
     const resultWithProfit = await Promise.all(
       result.map(async (row) => {
-        // console.log(row);
 
         const price = await getPriceNew(row.id);
 
-        console.log(price);
         var currValue = parseFloat(price) * parseInt(row.units);
         currValue = currValue.toFixed(2);
         var profit = (currValue * 100) / row.amt_invested;
@@ -710,7 +660,6 @@ router.get("/wishlist", middlewares.verifyUser, async (req, res) => {
           flagProfit = true;
         }
 
-        // console.log(profit);
         return {
           ...row,
           currValue: currValue,
@@ -720,15 +669,12 @@ router.get("/wishlist", middlewares.verifyUser, async (req, res) => {
       })
     );
 
-    console.log(resultWithProfit);
-
-    res.render("wishlist", {
+    res.render(ViewNames.WISHLIST, {
       resultWithProfit
     });
   });
 });
 
-//
 
 router.post("/addToWishlist", middlewares.verifyUser, async (req, res) => {
   var id = req.body.id;
@@ -759,111 +705,123 @@ router.post("/addToWishlist", middlewares.verifyUser, async (req, res) => {
   var sql = `insert into wishlist (id, name , units, username) values ('${id}',${name}, ${units}, '${userId}')`;
   con.query(sql, (error, result) => {
     if (error) {
-      console.log(error);
-    } else {
-      res.redirect(
-        `/api/showUserStocks/productDescription?id=${id}&identifier=${identifier}&open=${open}&dayHigh=${dayHigh}&dayLow=${dayLow}&lastPrice=${lastPrice}&previousClose=${previousClose}&change=${change}&pChange=${pChange}&totalTradedVolume=${totalTradedVolume}&totalTradedValue=${totalTradedValue}&lastUpdateTime=${lastUpdateTime}&yearHigh=${yearHigh}&yearLow=${yearLow}&perChange365d=${perChange365d}&perChange30d=${perChange30d}&error=` +
-        encodeURIComponent("Successfully added to wishlist")
+      return res.redirect(
+        `/api/showUserStocks/productDescription?id=${id}&identifier=${identifier}&error=${encodeURIComponent(
+          TradeMessages.TRANSACTION_FAIL
+        )}`
       );
     }
+    res.redirect(
+      `/api/showUserStocks/productDescription?id=${id}&identifier=${identifier}&open=${open}&dayHigh=${dayHigh}&dayLow=${dayLow}&lastPrice=${lastPrice}&previousClose=${previousClose}&change=${change}&pChange=${pChange}&totalTradedVolume=${totalTradedVolume}&totalTradedValue=${totalTradedValue}&lastUpdateTime=${lastUpdateTime}&yearHigh=${yearHigh}&yearLow=${yearLow}&perChange365d=${perChange365d}&perChange30d=${perChange30d}&error=` +
+      encodeURIComponent(TradeMessages.WISHLIST_ADDED)
+    );
   });
 });
 
 router.get("/buyWishlist", middlewares.verifyUser, async (req, res) => {
-  //// 
 
   try {
     var id = req.query.id;
-    console.log(id + "knd")
     var name = req.query.name;
     var units = req.query.units;
     var username = req.user.username;
     var data = await getPriceNew1(id);
-    console.log(data + "parwez");
 
     var open = data.open;
 
     var sql = `select * from stockuser where username='${username}'`;
     con.query(sql, (error, result) => {
       if (error) {
-        console.log(error);
+        return res.redirect(
+          `/api/showUserStocks/wishlist?error=${encodeURIComponent(
+            TradeMessages.TRANSACTION_FAIL
+          )}`
+        );
       } else {
         if (result[0]) {
-          //
           var cost = units * open;
 
           if (cost > result[0].amount) {
-            //req.flash("message", "please enter  custid");
             res.redirect(
               `/api/showUserStocks/wishlist&error=` +
-              encodeURIComponent("Insufficient-Fund")
+              encodeURIComponent(TradeMessages.INSUFFICIENT_FUND)
             );
           } else {
-            //update the balance of user in buyer table
             var newAmount = result[0].amount - cost;
             var sql2 = `update stockuser set amount=${newAmount} where username='${username}'`;
             con.query(sql2, (error, result) => {
               if (error) {
-                console.log(error);
+                return res.redirect(
+                  `/api/showUserStocks/wishlist?error=${encodeURIComponent(
+                    TradeMessages.TRANSACTION_FAIL
+                  )}`
+                );
               }
             });
-            ////
 
-            //check if stock already present in userStocks
             var sql = `SELECT * FROM userStocks WHERE id=? and username='${req.user.username}'`;
             con.query(sql, [id], (error, result) => {
               if (error) {
-                console.log(error);
+                return res.redirect(
+                  `/api/showUserStocks/wishlist?error=${encodeURIComponent(
+                    TradeMessages.TRANSACTION_FAIL
+                  )}`
+                );
               }
-              // console.log(result);
               if (result[0]) {
-                //if exist
                 var newUnit = result[0].units + units;
-                // console.log("djshfdus->"+result[0].units);
                 var newamt = result[0].amt_invested + cost;
-                // console.log('yyyy', newUnit);
-                // console.log('newamt', newAmount);
                 var sql = `UPDATE userStocks set units=${newUnit}, amt_invested=${newamt} WHERE id="${id}" and username='${req.user.username}'`;
                 con.query(sql, (error, result) => {
                   if (error) {
-                    console.log(error);
+                    return res.redirect(
+                      `/api/showUserStocks/wishlist?error=${encodeURIComponent(
+                        TradeMessages.TRANSACTION_FAIL
+                      )}`
+                    );
                   }
                   var sql10 = `DELETE FROM wishlist WHERE id='${id}'`;
                   con.query(sql10, (error, result) => {
                     if (error) {
-                      console.log(error);
+                      return res.redirect(
+                        `/api/showUserStocks/wishlist?error=${encodeURIComponent(
+                          TradeMessages.TRANSACTION_FAIL
+                        )}`
+                      );
                     }
 
                     res.redirect(
                       `/api/showUserStocks/wishlist?error=` +
-                      encodeURIComponent("Transaction-successfull")
+                      encodeURIComponent(TradeMessages.TRANSACTION_SUCCESS)
                     );
                   });
                 });
               } else {
                 var sql = `INSERT INTO userStocks VALUES(?,?,?,?,?)`;
-                // console.log(name);
 
                 var values = [id, name, units, cost, req.user.username];
-                // console.log(values);
 
                 con.query(sql, values, (error, result) => {
                   if (error) {
                     res.redirect(
                       `/api/showUserStocks/wishlist&error=` +
-                      encodeURIComponent("Transaction Unsuccessful")
+                      encodeURIComponent(TradeMessages.TRANSACTION_FAIL)
                     );
                   }
 
                   var sql10 = `DELETE FROM wishlist WHERE id='${id}'`;
                   con.query(sql10, (error, result) => {
                     if (error) {
-                      console.log(error);
+                      return res.redirect(
+                        `/api/showUserStocks/wishlist?error=${encodeURIComponent(
+                          TradeMessages.TRANSACTION_FAIL
+                        )}`
+                      );
                     }
 
                     res.redirect(
                       `/api/showUserStocks/wishlist?error=` +
-                      encodeURIComponent("Transaction-successfull")
+                      encodeURIComponent(TradeMessages.TRANSACTION_SUCCESS)
                     );
                   });
 
@@ -873,21 +831,21 @@ router.get("/buyWishlist", middlewares.verifyUser, async (req, res) => {
             });
           }
         } else {
-          // res.redirect('buy')
           res.redirect(
             `/api/showUserStocks/wishlist&error=` +
-            encodeURIComponent("user-not exist")
+            encodeURIComponent(TradeMessages.USER_NOT_EXIST)
           );
         }
       }
     });
   } catch (error) {
-    if (error) {
-      console.log(error);
-    }
+    res.redirect(
+      `/api/showUserStocks/wishlist?error=${encodeURIComponent(
+        FlashMessages.TRY_AGAIN
+      )}`
+    );
   }
 
-  /////
 });
 
 module.exports = router;

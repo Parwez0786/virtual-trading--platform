@@ -85,9 +85,6 @@
   </div>
 
 
-
-
-
   <div class="container">
     <ul class="responsive-table">
       <li class="table-header">
@@ -97,12 +94,7 @@
         <div class="col col-4">52W High</div>
         <div class="col col-5">52W Low</div>
       </li>
-      {{!-- <li class="table-row">
-        <div class="col col-1" data-label="Job Id">42235</div>
-        <div class="col col-2" data-label="Customer Name">John Doe</div>
-        <div class="col col-3" data-label="Amount">$350</div>
-        <div class="col col-4" data-label="Payment Status">Pending</div>
-      </li> --}}
+      
       {{#each resultWithProfit}}
       <a
         href="/api/showUserStocks/productDescription?id={{this.symbol}}&identifier='{{this.identifier}}'&open={{this.open}}&dayHigh={{this.dayHigh}}&dayLow={{this.dayLow}}&lastPrice={{this.lastPrice}}&previousClose={{this.previousClose}}&change={{this.change}}&pChange={{this.pChange}}&totalTradedVolume={{this.totalTradedVolume}}&totalTradedValue={{this.totalTradedValue}}&lastUpdateTime={{this.lastUpdateTime}}&yearHigh={{this.yearHigh}}&yearLow={{this.yearLow}}&perChange365d={{this.perChange365d}}&perChange30d={{this.perChange30d}}">
@@ -125,8 +117,6 @@
 
 
   </div>
-
-
 
 
   <!-- -- footer - (START)-- -->
@@ -161,7 +151,6 @@
   <script src="/scripts/search_box.js"></script>
   <script src="/scripts/changeNavbar.js"></script>
   <script>
-
 
 
   </script>
